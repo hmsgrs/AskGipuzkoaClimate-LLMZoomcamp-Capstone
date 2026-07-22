@@ -1,0 +1,36 @@
+id: ingest_official_documents
+namespace: llm_zoomcamp_capstone
+
+description: |
+  Refresh and index the bounded Euskalmet and Basque Government RAG corpus.
+
+triggers:
+  - id: monthly
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "0 6 1 * *"
+
+tasks:
+  - id: refresh_knowledge_corpus
+    type: io.kestra.plugin.scripts.shell.Commands
+    containerImage: gipuzkoa-askbot-ingestion:latest
+    commands:
+      - uv run --no-sync python -m app.ingest --database /data/ingestion.sqlite knowledge-corpus
+
+  - id: synchronize_embeddings
+    type: io.kestra.plugin.scripts.shell.Commands
+    containerImage: gipuzkoa-askbot-ingestion:latest
+    env:
+      OPENAI_API_KEY: "{{ secret('OPENAI_API_KEY') }}"
+      DATABASE_URL: "{{ secret('DATABASE_URL') }}"
+    commands:
+      - uv run --no-sync python -m app.ingest --database /data/ingestion.sqlite knowledge-embeddings
+
+  - id: compare_retrieval
+    type: io.kestra.plugin.scripts.shell.Commands
+    containerImage: gipuzkoa-askbot-ingestion:latest
+    env:
+      OPENAI_API_KEY: "{{ secret('OPENAI_API_KEY') }}"
+      DATABASE_URL: "{{ secret('DATABASE_URL') }}"
+    commands:
+      - uv run --no-sync python -m app.ingest --database /data/ingestion.sqlite knowledge-evaluation
+      - uv run --no-sync python -m app.ingest --database /data/ingestion.sqlite retrieval-comparison

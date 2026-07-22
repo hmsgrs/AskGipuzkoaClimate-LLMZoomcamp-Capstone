@@ -1,0 +1,18 @@
+id: ingest_euskalmet_homepage_alerts
+namespace: llm_zoomcamp_capstone
+
+description: |
+  Refresh public Euskalmet Meteoadversa warning cards from the official homepage.
+  This flow does not ingest social-media content.
+
+triggers:
+  - id: every_fifteen_minutes
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "*/15 * * * *"
+
+tasks:
+  - id: refresh_euskalmet_homepage_alerts
+    type: io.kestra.plugin.scripts.shell.Commands
+    containerImage: gipuzkoa-askbot-ingestion:latest
+    commands:
+      - uv run --no-sync python -m app.ingest --database /data/ingestion.sqlite euskalmet-homepage-alerts

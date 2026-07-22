@@ -1,0 +1,24 @@
+id: ingest_public_weather
+namespace: llm_zoomcamp_capstone
+
+description: |
+  Refresh public Euskalmet station metadata and normal-weather forecasts.
+  The image contains the same Python source used for local ingestion.
+
+triggers:
+  - id: hourly
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "0 * * * *"
+
+tasks:
+  - id: refresh_station_catalogue
+    type: io.kestra.plugin.scripts.shell.Commands
+    containerImage: gipuzkoa-askbot-ingestion:latest
+    commands:
+      - uv run --no-sync python -m app.ingest --database /data/ingestion.sqlite euskalmet-stations
+
+  - id: refresh_forecast
+    type: io.kestra.plugin.scripts.shell.Commands
+    containerImage: gipuzkoa-askbot-ingestion:latest
+    commands:
+      - uv run --no-sync python -m app.ingest --database /data/ingestion.sqlite euskalmet-forecast

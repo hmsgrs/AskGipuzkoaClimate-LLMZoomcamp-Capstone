@@ -1,0 +1,44 @@
+[
+  {
+    "question_id": "climate-definition-es",
+    "question": "Que es el cambio climatico y por que es un problema global?",
+    "language": "es",
+    "expected_source_id": "basque-government-climate",
+    "category": "climate_guidance"
+  },
+  {
+    "question_id": "climate-definition-en",
+    "question": "Why is climate change a global problem?",
+    "language": "en",
+    "expected_source_id": "basque-government-climate",
+    "category": "climate_guidance"
+  },
+  {
+    "question_id": "recommendations-es",
+    "question": "Donde encuentro recomendaciones ante meteorologia adversa?",
+    "language": "es",
+    "expected_source_id": "euskalmet-recommendations",
+    "category": "preparedness"
+  },
+  {
+    "question_id": "recommendations-en",
+    "question": "Where can I find official adverse-weather recommendations?",
+    "language": "en",
+    "expected_source_id": "euskalmet-recommendations",
+    "category": "preparedness"
+  },
+  {
+    "question_id": "winter-climate-es",
+    "question": "Como fue la climatologia del invierno 2020-2021?",
+    "language": "es",
+    "expected_source_id": "euskalmet-season-winter-2021",
+    "category": "climate_history"
+  },
+  {
+    "question_id": "summer-climate-en",
+    "question": "What were the climate conditions during summer 2021?",
+    "language": "en",
+    "expected_source_id": "euskalmet-season-summer-2021",
+    "category": "climate_history"
+  }
+]

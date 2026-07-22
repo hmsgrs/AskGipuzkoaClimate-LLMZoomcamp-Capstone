@@ -1,0 +1,12 @@
+.env
+.DS_Store
+docs/api_keys/
+.venv/
+__pycache__/
+*.py[cod]
+*.db
+*.sqlite
+data/raw/
+data/processed/
+grafana-data/
+postgres-data/
