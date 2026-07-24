@@ -8,13 +8,6 @@ concurrency:
   limit: 1
   behavior: QUEUE
 
-triggers:
-  - id: monthly
-    type: io.kestra.plugin.core.trigger.Schedule
-    cron: "0 4 10 * *"
-    timezone: Europe/Madrid
-    recoverMissedSchedules: LAST
-
 tasks:
   - id: download_previous_month
     type: io.kestra.plugin.scripts.shell.Commands
@@ -28,7 +21,7 @@ tasks:
     commands:
       - >-
         PYTHONPATH=/app /app/.venv/bin/python -m app.climate_ingest --monthly
-        --as-of "{{ trigger.date ?? execution.startDate | date('yyyy-MM-dd') }}"
+        --as-of "{{ execution.startDate | date('yyyy-MM-dd') }}"
         --output-root /data/raw/era5-land
     timeout: PT6H
     retry:

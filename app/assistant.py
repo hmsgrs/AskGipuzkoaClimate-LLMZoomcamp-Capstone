@@ -11,6 +11,7 @@ from openai import OpenAI
 from app.metrics import RAGWithMetrics
 from app.pgvector_repository import PgvectorRepository
 from app.rag_helper import RAGResult
+from app.snapshot import MANIFEST_NAME, read_snapshot_metadata, verify_snapshot
 from app.sqlite_repository import SQLiteRepository
 from app.weather_api import CachedWeatherRepository
 
@@ -149,10 +150,21 @@ def create_assistant(
         sqlite_database
         or os.getenv("SQLITE_DATABASE", "data/processed/ingestion.sqlite")
     )
-    backend = retrieval_backend or os.getenv("RETRIEVAL_BACKEND", "pgvector")
+    data_mode = os.getenv("DATA_MODE", "snapshot").casefold()
+    if data_mode not in {"snapshot", "refresh"}:
+        raise ValueError("DATA_MODE must be snapshot or refresh")
+    snapshot_mode = data_mode == "snapshot"
+    backend = retrieval_backend or os.getenv(
+        "RETRIEVAL_BACKEND", "sqlite_fts5" if snapshot_mode else "pgvector"
+    )
     client = llm_client or OpenAI()
     model = os.getenv("OPENAI_CHAT_MODEL", "gpt-5.4-mini")
     weather_max_age = int(os.getenv("LIVE_DATA_MAX_AGE_HOURS", "3"))
+
+    if snapshot_mode:
+        if (database.parent / MANIFEST_NAME).is_file():
+            verify_snapshot(database.parent)
+        read_snapshot_metadata(database)
 
     if backend == "pgvector":
         knowledge_repository = PgvectorRepository(
@@ -171,7 +183,11 @@ def create_assistant(
         retrieval_backend=backend,
     )
     weather_rag = RAGWithMetrics(
-        CachedWeatherRepository(database, max_age_hours=weather_max_age),
+        CachedWeatherRepository(
+            database,
+            max_age_hours=weather_max_age,
+            snapshot_mode=snapshot_mode,
+        ),
         client,
         model=model,
         retrieval_backend="cached_official_weather",

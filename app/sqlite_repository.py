@@ -4,7 +4,8 @@ import re
 import sqlite3
 from pathlib import Path
 
-from app.knowledge_base import DEFAULT_DATABASE, initialize_knowledge_base
+from app.knowledge_base import DEFAULT_DATABASE
+from app.snapshot import open_readonly_database
 
 
 def fts_query(question: str):
@@ -14,16 +15,15 @@ def fts_query(question: str):
 
 class SQLiteRepository:
     def __init__(self, database: Path = DEFAULT_DATABASE):
-        self.database = database
+        self.database = Path(database)
 
     def search(self, question: str, limit: int = 5):
         query = fts_query(question)
-        if not query:
+        if not query or not self.database.is_file():
             return []
-        connection = sqlite3.connect(self.database)
+        connection = open_readonly_database(self.database)
         connection.row_factory = sqlite3.Row
         try:
-            initialize_knowledge_base(connection)
             rows = connection.execute(
                 """
                 SELECT c.chunk_id, c.text, d.document_id, d.title,
@@ -35,7 +35,7 @@ class SQLiteRepository:
                 JOIN documents d ON d.document_id = c.document_id
                 JOIN sources s ON s.source_id = d.source_id
                 WHERE chunks_fts MATCH ? AND d.active = 1
-                ORDER BY score
+                ORDER BY score, c.chunk_id
                 LIMIT ?
                 """,
                 (query, limit),

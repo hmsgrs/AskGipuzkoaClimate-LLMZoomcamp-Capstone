@@ -1,0 +1,64 @@
+id: produce_all_source_snapshot
+namespace: llm_zoomcamp_capstone
+disabled: false
+
+description: |
+  Manually acquire all bounded sources into a fresh staging database and publish one
+  immutable snapshot. This flow has no schedule and requires all provider credentials.
+
+inputs:
+  - id: as_of
+    type: STRING
+  - id: aemet_start
+    type: STRING
+  - id: aemet_end
+    type: STRING
+  - id: aemet_station
+    type: STRING
+    defaults: 1012P
+  - id: era5_year
+    type: INT
+  - id: era5_month
+    type: INT
+
+concurrency:
+  limit: 1
+  behavior: QUEUE
+
+tasks:
+  - id: capture_build_and_publish
+    type: io.kestra.plugin.scripts.shell.Commands
+    containerImage: gipuzkoa-askbot-ingestion:0.2.0
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      networkMode: askgipuzkoa-network
+      volumes:
+        - askgipuzkoa-ingestion-data:/data
+        - "{{ secret('AEMET_SECRET_DIR') }}:/run/secrets/aemet:ro"
+        - "{{ secret('EUSKALMET_SECRET_DIR') }}:/run/secrets/euskalmet:ro"
+        - "{{ secret('CDS_CONFIG_PATH') }}:/root/.cdsapirc:ro"
+    env:
+      AEMET_API_KEY_PATH: /run/secrets/aemet/api.pem
+      EUSKALMET_PRIVATE_KEY_PATH: /run/secrets/euskalmet/privateKey.pem
+      EUSKALMET_LOGIN_ID_PATH: /run/secrets/euskalmet/fingerPrint.txt
+      EUSKALMET_EMAIL: "{{ secret('EUSKALMET_EMAIL') }}"
+      EUSKALMET_ISSUER: gipuzkoa-weather-climate-askbot
+    commands:
+      - >-
+        PYTHONPATH=/app /app/.venv/bin/python -m app.snapshot_refresh
+        --snapshot-id "{{ execution.id }}"
+        --output-root /data/snapshots
+        --as-of "{{ inputs.as_of }}"
+        --aemet-station "{{ inputs.aemet_station }}"
+        --aemet-start "{{ inputs.aemet_start }}"
+        --aemet-end "{{ inputs.aemet_end }}"
+        --era5-year "{{ inputs.era5_year }}"
+        --era5-month "{{ inputs.era5_month }}"
+        --questions /app/evaluation/retrieval_questions.json
+    timeout: PT8H
+    retry:
+      type: exponential
+      interval: PT2M
+      maxInterval: PT15M
+      maxAttempts: 2
+      maxDuration: PT10H

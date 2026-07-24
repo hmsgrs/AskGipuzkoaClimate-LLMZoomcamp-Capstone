@@ -2,6 +2,7 @@
 
 import os
 from html import escape
+from pathlib import Path
 
 import streamlit as st
 
@@ -10,6 +11,7 @@ from app.db_feedback import save_feedback
 from app.db_init import connect, initialize_application_schema
 from app.db_save import save_conversation
 from app.judge import evaluate_relevance
+from app.snapshot import read_snapshot_metadata
 
 
 SAMPLE_QUESTIONS = (
@@ -200,10 +202,23 @@ st.markdown(
 
 with st.sidebar:
     st.header("System")
+    data_mode = os.getenv("DATA_MODE", "snapshot")
+    st.write("Data mode", data_mode.title())
     st.write("Retrieval", os.getenv("RETRIEVAL_BACKEND", "pgvector"))
     st.write("Generation", os.getenv("OPENAI_CHAT_MODEL", "gpt-5.4-mini"))
     st.write("Embeddings", os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"))
-    st.caption("Official snapshots are refreshed by Kestra. Freshness is shown per source.")
+    if data_mode.casefold() == "snapshot":
+        metadata = read_snapshot_metadata(
+            Path(os.getenv("SQLITE_DATABASE", "data/processed/ingestion.sqlite"))
+        )
+        st.caption(
+            f"Snapshot {metadata['snapshot_id']} · acquisition "
+            f"{metadata['capture_started_at'] or 'unknown'} to "
+            f"{metadata['capture_completed_at'] or 'unknown'}. Weather and warnings "
+            "are historical, not current conditions."
+        )
+    else:
+        st.caption("Official data was refreshed externally. Freshness is shown per source.")
 
 st.subheader("Try an example")
 sample_columns = st.columns(2)

@@ -9,13 +9,6 @@ concurrency:
   limit: 1
   behavior: QUEUE
 
-triggers:
-  - id: every_fifteen_minutes
-    type: io.kestra.plugin.core.trigger.Schedule
-    cron: "*/15 * * * *"
-    timezone: Europe/Madrid
-    recoverMissedSchedules: LAST
-
 tasks:
   - id: refresh_euskalmet_homepage_alerts
     type: io.kestra.plugin.scripts.shell.Commands

@@ -8,13 +8,6 @@ concurrency:
   limit: 1
   behavior: QUEUE
 
-triggers:
-  - id: monthly
-    type: io.kestra.plugin.core.trigger.Schedule
-    cron: "15 3 1 * *"
-    timezone: Europe/Madrid
-    recoverMissedSchedules: LAST
-
 tasks:
   - id: refresh_catalogue
     type: io.kestra.plugin.scripts.shell.Commands

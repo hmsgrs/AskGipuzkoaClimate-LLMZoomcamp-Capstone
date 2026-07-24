@@ -8,7 +8,7 @@ The application uses official public sources, cites its evidence, collects user 
 
 Residents and visitors need trustworthy, locally relevant answers to questions such as:
 
-- What weather warnings are active in Gipuzkoa?
+- What warnings were captured in the published Gipuzkoa snapshot?
 - How should I prepare for heavy rain or flooding?
 - What local climate risks are expected to increase?
 - Where can I find official guidance for a heatwave or storm?
@@ -20,11 +20,11 @@ Official information is distributed between weather services, government pages, 
 - Spanish and English question answering
 - Retrieval-augmented answers grounded in official documents
 - Source links and publication/update metadata with answers
-- Live weather and warning data from an official provider
+- Versioned weather and warning snapshots from official providers
 - Emergency disclaimer and `112` guidance
 - User feedback collection
 - Importable Grafana monitoring dashboard with eight panels
-- Automated ingestion with Kestra
+- Manual snapshot workflow with optional Kestra orchestration
 
 ## Technology Stack
 
@@ -33,7 +33,7 @@ Official information is distributed between weather services, government pages, 
 | LLM | OpenAI | Answer generation and embeddings |
 | Knowledge base | SQLite with FTS5 | Document text, source metadata, and evaluation data |
 | Vector database | PostgreSQL with pgvector | Vector embeddings and similarity search |
-| Ingestion pipeline | Kestra | Automated data refresh and loading |
+| Ingestion pipeline | Python and optional Kestra | Explicit capture and immutable snapshot publication |
 | Interface | Streamlit | Interactive web application |
 | Monitoring | Grafana | Application and feedback dashboard |
 | Local runtime | Docker Compose | Run all services together |
@@ -60,25 +60,23 @@ Semantic retrieval stores `text-embedding-3-small` vectors in PostgreSQL with pg
 
 Confirmed access paths, source classifications, and credential requirements are documented in [API Discovery](docs/API_DISCOVERY.md).
 
-See [Data Ingestion](docs/INGESTION.md) for source commands, SQLite tables, and Kestra flows. [RAG Application](docs/APPLICATION.md) documents routing, citations, safety, and startup. Retrieval and prompt results are recorded in [Evaluation](docs/EVALUATION.md), and the PostgreSQL/Grafana contract is in [Monitoring](docs/MONITORING.md).
+See [Data Snapshots](docs/SNAPSHOTS.md) for the no-credential audit path and snapshot commands. [Snapshot-First Redesign](docs/SNAPSHOT_REDESIGN.md) records the architecture decision and migration. [Data Ingestion](docs/INGESTION.md) retains provider commands and optional Kestra flows. [RAG Application](docs/APPLICATION.md) documents routing, citations, safety, and startup. Retrieval and prompt results are recorded in [Evaluation](docs/EVALUATION.md), and the PostgreSQL/Grafana contract is in [Monitoring](docs/MONITORING.md).
 
 ## Architecture
 
 ```text
 Streamlit user interface
   -> deterministic bilingual query routing
-     -> cached official API and homepage snapshots for forecasts and warnings
+     -> immutable historical API and homepage snapshots for forecasts and warnings
      -> SQLite FTS5 retrieval or pgvector similarity retrieval
   -> OpenAI answer generation with citations
   -> optional feedback and consented interaction events in PostgreSQL
   -> Grafana dashboard
 
-Kestra
-  -> fetch public sources
-  -> normalize and chunk documents
-  -> load SQLite
-  -> create OpenAI embeddings
-  -> load pgvector
+Optional manual Python or Kestra producer
+  -> fetch and normalize bounded official sources
+  -> load a disposable working SQLite database
+  -> publish a verified immutable snapshot
 ```
 
 ## Course Criteria
@@ -92,7 +90,7 @@ This project is designed to cover the LLM Zoomcamp project requirements:
 | Retrieval evaluation | Compare SQLite FTS5 retrieval with pgvector similarity retrieval |
 | LLM evaluation | Structured LLM-as-Judge comparison selects the citation/safety prompt |
 | Interface | Bilingual Streamlit UI with source cards, feedback, metrics, and `112` guidance |
-| Ingestion pipeline | Automated Kestra workflow |
+| Ingestion pipeline | Canonical Python snapshot commands plus optional manual Kestra workflows |
 | Monitoring | PostgreSQL events plus an importable eight-panel Grafana dashboard |
 | Containerization | PostgreSQL and Kestra in Compose; local Streamlit/Grafana services are the next deployment step |
 | Reproducibility | Version-pinned dependencies, public data, and documented setup |
@@ -120,22 +118,24 @@ See [STATUS.md](STATUS.md) for the current state, active work, and prioritized n
 
 ## Run The Showcase
 
-The initial climate-data path uses the configured CDS credentials in `~/.cdsapirc`. Before the first retrieval, accept the ERA5-Land licence in the [Climate Data Store](https://cds.climate.copernicus.eu/datasets/reanalysis-era5-land?tab=download#manage-licences):
+The default audit path uses a published snapshot and does not require AEMET, Euskalmet, CDS, or Kestra credentials:
 
 ```bash
 uv sync --group dev
-docker compose up -d postgres kestra
-uv run python -m app.db_init
+uv run python -m app.snapshot verify --snapshot data/snapshots/SNAPSHOT_ID
+DATA_MODE=snapshot \
+SQLITE_DATABASE=data/snapshots/SNAPSHOT_ID/snapshot.sqlite \
+RETRIEVAL_BACKEND=sqlite_fts5 \
 uv run streamlit run app/streamlit_app.py
 ```
 
-The application requires `OPENAI_API_KEY`, a local `DATABASE_URL`, and an ingested SQLite corpus. The default semantic backend is pgvector; set `RETRIEVAL_BACKEND=sqlite_fts5` to demonstrate the lexical baseline. Full environment variables and credential-path conventions are listed in `.env.example`.
+New generated answers require `OPENAI_API_KEY`. PostgreSQL is needed for pgvector or consented monitoring, but not for snapshot verification and FTS retrieval. Full environment variables and credential-path conventions are listed in `.env.example`.
 
-ERA5-Land retrieval still requires acceptance of the [Climate Data Store licence](https://cds.climate.copernicus.eu/datasets/reanalysis-era5-land?tab=download#manage-licences). Generated data and credentials are intentionally ignored by Git.
+Creating a new all-source snapshot is an optional maintainer path that requires the relevant provider credentials and acceptance of the [Climate Data Store licence](https://cds.climate.copernicus.eu/datasets/reanalysis-era5-land?tab=download#manage-licences). See [Data Snapshots](docs/SNAPSHOTS.md).
 
 ## Limitations
 
-- Information freshness depends on source availability and scheduled ingestion.
+- Weather and warnings in the default snapshot are historical and must not be treated as current conditions.
 - The application does not replace official warning channels or emergency services.
 - Responses are limited to Gipuzkoa and should identify when a source is Basque Country- or Spain-wide rather than Gipuzkoa-specific.
 - The initial evaluation fixtures contain six questions each and are showcase baselines, not comprehensive quality guarantees.

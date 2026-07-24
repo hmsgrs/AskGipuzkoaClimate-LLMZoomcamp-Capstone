@@ -8,6 +8,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from app.knowledge_base import DEFAULT_DATABASE
+from app.snapshot import open_readonly_database
 
 
 WARNING_TERMS = {
@@ -50,9 +51,15 @@ def _parse_timestamp(value):
 class CachedWeatherRepository:
     """Serve the latest official snapshots without making provider calls per question."""
 
-    def __init__(self, database: Path = DEFAULT_DATABASE, max_age_hours: int = 3):
+    def __init__(
+        self,
+        database: Path = DEFAULT_DATABASE,
+        max_age_hours: int = 3,
+        snapshot_mode: bool = False,
+    ):
         self.database = Path(database)
         self.max_age = timedelta(hours=max_age_hours)
+        self.snapshot_mode = snapshot_mode
 
     def _stale(self, retrieved_at):
         timestamp = _parse_timestamp(retrieved_at)
@@ -61,7 +68,7 @@ class CachedWeatherRepository:
     def search(self, question: str, limit: int = 5):
         if not self.database.exists() or limit <= 0:
             return []
-        connection = sqlite3.connect(self.database)
+        connection = open_readonly_database(self.database)
         connection.row_factory = sqlite3.Row
         try:
             tables = {
@@ -107,7 +114,8 @@ class CachedWeatherRepository:
         results = []
         seen_payloads = set()
         for row in rows:
-            if self._stale(row["retrieved_at"]):
+            stale = True if self.snapshot_mode else self._stale(row["retrieved_at"])
+            if stale and not self.snapshot_mode:
                 continue
             payload_key = (row["provider"], row["payload_json"])
             if payload_key in seen_payloads:
@@ -119,19 +127,23 @@ class CachedWeatherRepository:
                     "chunk_id": row["alert_id"],
                     "document_id": row["alert_id"],
                     "text": (
-                        "Recent cached warning snapshot. Verify current validity on the "
+                        "Historical warning snapshot. Verify current validity on the "
                         f"official page. Request: {json.dumps(request)}. Payload: "
                         f"{json.dumps(json.loads(row['payload_json']), ensure_ascii=False)[:3000]}"
                     ),
-                    "title": "Recent official warning snapshot",
+                    "title": "Archived official warning snapshot",
                     "source_id": f"{row['provider']}-alerts-{row['alert_id']}",
                     "organization": row["provider"].replace("-", " ").title(),
                     "url": row["source_url"],
                     "language": "es",
                     "publication_date": None,
                     "retrieved_at": row["retrieved_at"],
-                    "source_type": "live_weather_alert",
-                    "stale": False,
+                    "source_type": (
+                        "snapshot_weather_alert"
+                        if self.snapshot_mode
+                        else "live_weather_alert"
+                    ),
+                    "stale": stale,
                     "score": 1.0,
                 }
             )
@@ -139,9 +151,33 @@ class CachedWeatherRepository:
                 break
         return results
 
-    def _target_date(self, question):
+    def _reference_date(self, connection):
+        tables = {
+            row[0]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+        }
+        if not self.snapshot_mode or "snapshot_metadata" not in tables:
+            return datetime.now(MADRID).date()
+        row = connection.execute(
+            """
+            SELECT effective_date, capture_completed_at, created_at
+            FROM snapshot_metadata LIMIT 1
+            """
+        ).fetchone()
+        if row and row[0]:
+            return date.fromisoformat(row[0])
+        timestamp = _parse_timestamp(row[1] or row[2]) if row else None
+        return (
+            timestamp.astimezone(MADRID).date()
+            if timestamp
+            else datetime.now(MADRID).date()
+        )
+
+    def _target_date(self, question, reference_date=None):
         terms = set(re.findall(r"[\wáéíóúñü]+", question.casefold()))
-        today = datetime.now(MADRID).date()
+        today = reference_date or datetime.now(MADRID).date()
         if terms & {"tomorrow", "mañana"}:
             return today + timedelta(days=1)
         if terms & {"today", "hoy"}:
@@ -165,7 +201,8 @@ class CachedWeatherRepository:
             LIMIT 30
             """
         ).fetchall()
-        target = self._target_date(question)
+        reference_date = self._reference_date(connection)
+        target = self._target_date(question, reference_date)
         latest_by_target = {}
         for row in rows:
             request = json.loads(row["request_json"] or "{}")
@@ -183,7 +220,7 @@ class CachedWeatherRepository:
         if target is not None:
             candidates = [candidate for candidate in candidates if candidate[2] == target]
         else:
-            today = datetime.now(MADRID).date()
+            today = reference_date
             candidates = [candidate for candidate in candidates if candidate[2] >= today]
         candidates.sort(key=lambda candidate: candidate[2])
 
@@ -217,7 +254,11 @@ class CachedWeatherRepository:
                     "language": "es",
                     "publication_date": request.get("issued_date"),
                     "retrieved_at": row["retrieved_at"],
-                    "source_type": "live_weather_forecast",
+                    "source_type": (
+                        "snapshot_weather_forecast"
+                        if self.snapshot_mode
+                        else "live_weather_forecast"
+                    ),
                     "stale": self._stale(row["retrieved_at"]),
                     "score": 1.0,
                 }
@@ -236,7 +277,8 @@ class CachedWeatherRepository:
             """
         ).fetchall()
         normalized_question = question.casefold()
-        target = self._target_date(question)
+        reference_date = self._reference_date(connection)
+        target = self._target_date(question, reference_date)
         dated_rows = []
         for row in rows:
             parsed_date = None
@@ -253,7 +295,7 @@ class CachedWeatherRepository:
         if target is not None:
             dated_rows = [item for item in dated_rows if item[1] == target]
         else:
-            today = datetime.now(MADRID).date()
+            today = reference_date
             upcoming = [item for item in dated_rows if item[1] >= today]
             dated_rows = upcoming or dated_rows
         ordered = sorted(
@@ -287,7 +329,11 @@ class CachedWeatherRepository:
                     "language": "es",
                     "publication_date": parsed_date.isoformat(),
                     "retrieved_at": row["retrieved_at"],
-                    "source_type": "live_weather_forecast",
+                    "source_type": (
+                        "snapshot_weather_forecast"
+                        if self.snapshot_mode
+                        else "live_weather_forecast"
+                    ),
                     "stale": self._stale(row["retrieved_at"]),
                     "score": 1.0,
                 }

@@ -43,14 +43,14 @@ Update this file whenever the project reaches a milestone or its active priority
 
 ### Automation and verification
 
-- Nine Kestra flows cover public weather, homepage alerts, authenticated Euskalmet forecasts and alerts, AEMET catalogue and daily history, bounded AEMET backfill, monthly ERA5-Land, and canonical corpus/vector refreshes.
+- Nine source-oriented Kestra flows cover public weather, homepage alerts, authenticated Euskalmet forecasts and alerts, AEMET catalogue and daily history, bounded AEMET backfill, ERA5-Land, and canonical corpus/vector refreshes. A tenth manual flow publishes the completed working database as an immutable snapshot.
 - The Compose runtime pins Kestra `v1.0.0`, PostgreSQL/pgvector, explicit Docker networking, persistent Kestra storage, and the shared ingestion-data volume.
 - Custom Kestra Basic Auth is active with a valid-email username; the built-in password is rejected.
 - The ingestion Docker image builds successfully as `gipuzkoa-askbot-ingestion:0.2.0`.
 - SQLite uses WAL mode, a 60-second busy timeout, locked schema initialization, request-scoped snapshot IDs, and durable `ingestion_runs` receipts without locking across network calls.
 - Authenticated refresh commands implement transient HTTP retries; incremental AEMET refreshes use lag, repair-window, and chunk controls; monthly ERA5-Land publication is atomic and idempotent.
-- All nine flow definitions validate with the pinned Kestra image and are imported into the local runtime.
-- Public weather, homepage alerts, authenticated Euskalmet alerts and forecasts, monthly ERA5-Land, and monthly corpus/vector refresh schedules are enabled. The two scheduled AEMET flows remain disabled.
+- The nine previously validated source flow definitions remain available for optional manual execution; the snapshot-publication flow still requires container validation.
+- All automatic schedule triggers were removed. AEMET flows remain disabled pending token rotation; other source flows can be launched manually when a new snapshot is intentionally produced.
 - Real Docker task-runner executions pass for public weather and homepage warning-card ingestion. The public run completed both tasks successfully in 5.8 seconds.
 - Runtime-only Kestra secrets are configured. Live Docker task-runner smoke tests pass for Euskalmet alerts and forecasts, AEMET station metadata, OpenAI access, CDS/AEMET/Euskalmet mounts, and PostgreSQL `SELECT 1` connectivity.
 - June 2026 ERA5-Land validation produced a 267,123-byte NetCDF with a matching SHA-256 manifest; an unchanged second execution reported `skipped`.
@@ -62,7 +62,7 @@ Update this file whenever the project reaches a milestone or its active priority
 ### RAG application and evaluation
 
 - Course-style `RAGBase`, `RAGWithMetrics`, and `create_assistant()` modules provide the end-to-end OpenAI answer path over pgvector or FTS5.
-- Deterministic Spanish/English routing separates knowledge, cached live-weather, and immediate-danger requests. Emergency requests bypass the LLM and direct users to `112`.
+- Deterministic Spanish/English routing separates knowledge, cached snapshot-weather, and immediate-danger requests. Emergency requests bypass the LLM and direct users to `112`.
 - Application-assigned `[S#]` labels constrain prompts and source cards; missing, unknown, or URL-bearing citations fail closed instead of being displayed as grounded output.
 - The cached weather repository prefers authenticated location forecasts, selects local today/tomorrow dates, excludes stale warnings, deduplicates warning payloads, and retains official URLs and retrieval timestamps.
 - The Streamlit showcase includes bilingual examples, escaped source metadata, route/model metrics, optional consented PostgreSQL storage, feedback comments, optional LLM-as-Judge, and a persistent emergency notice. Its real health endpoint returns HTTP 200.
@@ -71,19 +71,28 @@ Update this file whenever the project reaches a milestone or its active priority
 - A live answer and online judge round trip succeeded with pgvector, persisted conversation/feedback records, and returned a `RELEVANT` verdict.
 - Retrieval evaluation now reports hit rate and MRR: FTS5 is 67%/0.67 and pgvector is 100%/0.92 at 5.
 - The hardened six-question bilingual prompt evaluation selected the citation/safety prompt at 4.83/5 overall versus 3.67/5 for the course baseline. Citation correctness improved from 1.83 to 4.50; citation-contract compliance and required-source recall both reached 100% versus 16.7%.
-- An importable Grafana dashboard defines eight PostgreSQL-backed panels. Runtime Grafana deployment is intentionally pending infrastructure decisions.
+- An importable Grafana dashboard defines eight PostgreSQL-backed panels. The local Compose topology and least-privilege roles are selected; implementation remains pending.
+
+### Snapshot-first redesign
+
+- The redesign decision, target architecture, migration phases, release requirements, and known blockers are recorded in `docs/SNAPSHOT_REDESIGN.md`.
+- `app.snapshot` creates WAL-safe immutable SQLite bundles, adds acquisition metadata, packages content-addressed artifacts, verifies checksums and database integrity, inspects manifests, and safely installs disposable working copies.
+- Retrieval opens SQLite read-only and uses deterministic FTS ordering.
+- Snapshot weather interprets relative dates from the acquisition window and always marks archived warning evidence stale.
+- Provider ingestion remains available manually; all recurring Kestra triggers were removed, and `create_data_snapshot` is an optional manually triggered publication flow.
+- The existing ignored development database is explicitly not a canonical all-source release because AEMET history and hazard coverage are incomplete.
 
 ## Currently Working On
 
-Implementing the selected local Streamlit/Grafana Compose topology while AEMET validation remains blocked on token rotation.
+Completing and publishing the first clean all-source snapshot after AEMET token rotation, then seeding portable semantic retrieval from that snapshot.
 
 ## Next Steps
 
 ### High Priority
 
 1. Rotate the AEMET token and update the mounted `api.pem` file.
-2. Backfill station `1012P` from 2024-01-01, validate the seven-day incremental repair window twice, and enable the two AEMET schedules.
-3. Add Streamlit and Grafana to local Compose on ports 8501 and 3000 with separate application-writer/Grafana-reader roles and manual retention.
+2. Build a clean bounded working database, backfill station `1012P`, and publish the first verified all-source snapshot.
+3. Attach ERA5 data/manifest and a portable embedding export to that snapshot, then record its digest in evaluation results.
 
 ### Medium Priority
 

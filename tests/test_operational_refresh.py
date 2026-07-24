@@ -286,4 +286,4 @@ def test_all_kestra_flows_define_runtime_safety_properties():
     era5_flow = (flow_directory / "ingest_era5_land_monthly.yaml").read_text(
         encoding="utf-8"
     )
-    assert '--as-of "{{ trigger.date ?? execution.startDate' in era5_flow
+    assert '--as-of "{{ execution.startDate' in era5_flow

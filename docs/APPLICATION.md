@@ -14,11 +14,14 @@ question
 
 ## Run Locally
 
-Start PostgreSQL and ensure the local SQLite corpus and pgvector embeddings have been ingested. Set `OPENAI_API_KEY`, `DATABASE_URL`, and the application variables documented in `.env.example`.
+For the default audit path, verify a published snapshot and use SQLite FTS5. Set `OPENAI_API_KEY` for new answers and point `SQLITE_DATABASE` at the snapshot database. PostgreSQL is only required for pgvector or consented monitoring.
 
 ```bash
 uv sync --group dev
-uv run python -m app.db_init
+uv run python -m app.snapshot verify --snapshot data/snapshots/SNAPSHOT_ID
+DATA_MODE=snapshot \
+SQLITE_DATABASE=data/snapshots/SNAPSHOT_ID/snapshot.sqlite \
+RETRIEVAL_BACKEND=sqlite_fts5 \
 uv run streamlit run app/streamlit_app.py
 ```
 
@@ -40,7 +43,7 @@ The default retrieval backend is pgvector. Set `RETRIEVAL_BACKEND=sqlite_fts5` t
 - Preparedness and recommendation questions select the knowledge base even if they contain the word "weather".
 - All remaining questions select the knowledge base.
 
-The weather repository serves snapshots refreshed by Kestra rather than making a provider API call for every user request. It prefers authenticated location forecasts for the requested local date and falls back to the public forecast table when no matching authenticated snapshot exists. Source cards expose retrieval timestamps and mark stale forecast snapshots. Warning queries exclude snapshots older than `LIVE_DATA_MAX_AGE_HOURS` and deduplicate repeated provider payloads rather than presenting old warnings as current evidence.
+The weather repository never makes provider calls per question. In the default `DATA_MODE=snapshot`, it treats forecasts and warnings as historical, uses the snapshot acquisition date when interpreting "today" or "tomorrow", includes archived warnings with a stale marker, and directs users to current official channels. In an explicitly configured refresh deployment, warning queries exclude rows older than `LIVE_DATA_MAX_AGE_HOURS`. Both modes deduplicate repeated provider payloads and retain official source URLs and retrieval times.
 
 ## Citation Contract
 

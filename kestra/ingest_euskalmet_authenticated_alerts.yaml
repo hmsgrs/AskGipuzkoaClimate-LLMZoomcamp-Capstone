@@ -8,13 +8,6 @@ concurrency:
   limit: 1
   behavior: QUEUE
 
-triggers:
-  - id: every_fifteen_minutes
-    type: io.kestra.plugin.core.trigger.Schedule
-    cron: "2,17,32,47 * * * *"
-    timezone: Europe/Madrid
-    recoverMissedSchedules: LAST
-
 tasks:
   - id: refresh_gipuzkoa_coast
     type: io.kestra.plugin.scripts.shell.Commands
@@ -34,7 +27,7 @@ tasks:
       - >-
         PYTHONPATH=/app /app/.venv/bin/python -m app.ingest --database /data/ingestion.sqlite
         refresh-euskalmet-alerts --zone GIPUZKOA_COAST
-        --as-of "{{ trigger.date ?? execution.startDate | date('yyyy-MM-dd') }}"
+        --as-of "{{ execution.startDate | date('yyyy-MM-dd') }}"
     timeout: PT5M
     retry:
       type: exponential

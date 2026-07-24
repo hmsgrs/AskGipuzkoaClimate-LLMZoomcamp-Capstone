@@ -8,6 +8,7 @@ from pgvector import Vector
 from app.db_init import connect, embedding_model
 from app.knowledge_base import DEFAULT_DATABASE
 from app.openai_client import OpenAIEmbeddingClient
+from app.snapshot import open_readonly_database
 
 
 class PgvectorRepository:
@@ -50,7 +51,7 @@ class PgvectorRepository:
             return []
         chunk_ids = [row[0] for row in vector_rows]
         placeholders = ",".join("?" for _ in chunk_ids)
-        connection = sqlite3.connect(self.sqlite_database)
+        connection = open_readonly_database(Path(self.sqlite_database))
         connection.row_factory = sqlite3.Row
         try:
             rows = connection.execute(

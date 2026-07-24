@@ -7,3 +7,4 @@ RUN uv sync --frozen --no-dev
 
 COPY app ./app
 COPY evaluation ./evaluation
+COPY docs/SNAPSHOT_REDESIGN.md docs/SNAPSHOTS.md ./docs/
