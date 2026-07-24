@@ -1,9 +1,12 @@
 """Small client for AEMET OpenData's two-step download API."""
 
 import os
+from datetime import date
 from pathlib import Path
 
 import requests
+
+from app.http_client import retry_session
 
 
 BASE_URL = "https://opendata.aemet.es/opendata/api"
@@ -15,15 +18,18 @@ class AemetClient:
         self.key_path = key_path or Path(
             os.getenv("AEMET_API_KEY_PATH", DEFAULT_KEY_PATH)
         )
-        self.session = session or requests.Session()
+        self.session = session or retry_session()
 
     def _get_data(self, path: str):
         key = self._read_api_key()
         if not key:
             raise RuntimeError(f"AEMET API key file is empty: {self.key_path}")
-        response = self.session.get(
-            f"{BASE_URL}{path}", params={"api_key": key}, timeout=30
-        )
+        try:
+            response = self.session.get(
+                f"{BASE_URL}{path}", params={"api_key": key}, timeout=30
+            )
+        except requests.RequestException:
+            raise RuntimeError("AEMET request failed due to a transport error") from None
         if not response.ok:
             # The request URL contains the API key, so never re-raise its HTTP error.
             raise RuntimeError(f"AEMET request failed with HTTP {response.status_code}")
@@ -51,6 +57,10 @@ class AemetClient:
         return self._get_data("/valores/climatologicos/inventarioestaciones/todasestaciones")
 
     def daily_observations(self, station_id: str, start_date: str, end_date: str):
+        start_value = date.fromisoformat(start_date)
+        end_value = date.fromisoformat(end_date)
+        if start_value > end_value:
+            raise ValueError("AEMET start date must not be after end date")
         start = f"{start_date}T00:00:00UTC"
         end = f"{end_date}T23:59:59UTC"
         return self._get_data(

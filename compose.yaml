@@ -14,6 +14,92 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - askgipuzkoa
+
+  kestra-init:
+    image: pgvector/pgvector:pg16
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gipuzkoa_askbot}
+      POSTGRES_USER: ${POSTGRES_USER:-gipuzkoa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    command:
+      - /bin/sh
+      - -c
+      - PGPASSWORD="$$POSTGRES_PASSWORD" psql -h postgres -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -c 'CREATE SCHEMA IF NOT EXISTS kestra'
+    restart: "no"
+    networks:
+      - askgipuzkoa
+
+  kestra:
+    image: kestra/kestra:v1.0.0
+    user: root
+    command: server standalone --worker-thread=32
+    depends_on:
+      kestra-init:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${KESTRA_PORT:-8080}:8080"
+      - "127.0.0.1:${KESTRA_MANAGEMENT_PORT:-8081}:8081"
+    volumes:
+      - kestra-data:/app/storage
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/kestra-wd:/tmp/kestra-wd
+    environment:
+      JAVA_OPTS: "-XX:UseSVE=0"
+      SECRET_OPENAI_API_KEY: ${KESTRA_SECRET_OPENAI_API_KEY_B64:-}
+      SECRET_DATABASE_URL: ${KESTRA_SECRET_DATABASE_URL_B64:-}
+      SECRET_EUSKALMET_EMAIL: ${KESTRA_SECRET_EUSKALMET_EMAIL_B64:-}
+      SECRET_EUSKALMET_SECRET_DIR: ${KESTRA_SECRET_EUSKALMET_SECRET_DIR_B64:-}
+      SECRET_AEMET_SECRET_DIR: ${KESTRA_SECRET_AEMET_SECRET_DIR_B64:-}
+      SECRET_CDS_CONFIG_PATH: ${KESTRA_SECRET_CDS_CONFIG_PATH_B64:-}
+      KESTRA_CONFIGURATION: |
+        datasources:
+          postgres:
+            url: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-gipuzkoa_askbot}?currentSchema=kestra
+            driverClassName: org.postgresql.Driver
+            username: ${POSTGRES_USER:-gipuzkoa}
+            password: ${POSTGRES_PASSWORD}
+        kestra:
+          server:
+            basicAuth:
+              username: ${KESTRA_USERNAME:-admin@kestra.io}
+              password: ${KESTRA_PASSWORD:?Set KESTRA_PASSWORD in .env}
+          repository:
+            type: postgres
+          storage:
+            type: local
+            local:
+              basePath: /app/storage
+          queue:
+            type: postgres
+          tasks:
+            tmpDir:
+              path: /tmp/kestra-wd/tmp
+            scripts:
+              docker:
+                volume-enabled: true
+          url: http://localhost:${KESTRA_PORT:-8080}/
+    networks:
+      - askgipuzkoa
+
+  ingestion-image:
+    image: gipuzkoa-askbot-ingestion:0.2.0
+    build:
+      context: .
+      dockerfile: Dockerfile.ingestion
+    command: ["true"]
+    profiles: ["build"]
 
 volumes:
   postgres-data:
+  kestra-data:
+  ingestion-data:
+    name: askgipuzkoa-ingestion-data
+
+networks:
+  askgipuzkoa:
+    name: askgipuzkoa-network

@@ -43,26 +43,37 @@ Update this file whenever the project reaches a milestone or its active priority
 
 ### Automation and verification
 
-- Kestra flows exist for hourly public weather ingestion and monthly canonical corpus indexing, embedding synchronization, and retrieval comparison.
-- The ingestion Docker image builds successfully as `gipuzkoa-askbot-ingestion:latest`.
-- Authenticated ingestion commands return structured JSON receipts with the destination table and record ID.
-- The automated test suite passes: 27 tests, including the real pgvector integration test against the Compose service.
+- Nine Kestra flows cover public weather, homepage alerts, authenticated Euskalmet forecasts and alerts, AEMET catalogue and daily history, bounded AEMET backfill, monthly ERA5-Land, and canonical corpus/vector refreshes.
+- The Compose runtime pins Kestra `v1.0.0`, PostgreSQL/pgvector, explicit Docker networking, persistent Kestra storage, and the shared ingestion-data volume.
+- Custom Kestra Basic Auth is active with a valid-email username; the built-in password is rejected.
+- The ingestion Docker image builds successfully as `gipuzkoa-askbot-ingestion:0.2.0`.
+- SQLite uses WAL mode, a 60-second busy timeout, locked schema initialization, request-scoped snapshot IDs, and durable `ingestion_runs` receipts without locking across network calls.
+- Authenticated refresh commands implement transient HTTP retries; incremental AEMET refreshes use lag, repair-window, and chunk controls; monthly ERA5-Land publication is atomic and idempotent.
+- All nine flow definitions validate with the pinned Kestra image and are imported into the local runtime.
+- Public weather, homepage alerts, authenticated Euskalmet alerts and forecasts, monthly ERA5-Land, and monthly corpus/vector refresh schedules are enabled. The two scheduled AEMET flows remain disabled.
+- Real Docker task-runner executions pass for public weather and homepage warning-card ingestion. The public run completed both tasks successfully in 5.8 seconds.
+- Runtime-only Kestra secrets are configured. Live Docker task-runner smoke tests pass for Euskalmet alerts and forecasts, AEMET station metadata, OpenAI access, CDS/AEMET/Euskalmet mounts, and PostgreSQL `SELECT 1` connectivity.
+- June 2026 ERA5-Land validation produced a 267,123-byte NetCDF with a matching SHA-256 manifest; an unchanged second execution reported `skipped`.
+- Corpus/vector validation passes with 9 active documents, 161 chunks, 161 vectors, zero unchanged embeddings, a 67% FTS5 hit rate, and a 100% pgvector hit rate.
+- Supervised enabled-flow executions succeeded for Euskalmet alerts (`4Z5ULbLUMBYhL6txvmndWq`), Euskalmet forecasts (`2T6MvUlX6E7dNzVDC8gKbr`), ERA5-Land (`4AUvyN7V9Mu85BjwYDOyuy`), and corpus/vector refresh (`6SNZZsJy9ls5NL0v7AxzBH`).
+- The initial AEMET historical backfill exposed its token because Kestra still had a pre-redaction ingestion image. The execution/logs were deleted, SQLite receipts were sanitized, the corrected image was rebuilt, and current logs are clean. The token must be rotated before AEMET validation resumes.
+- The complete suite passes with 43 tests, including the real pgvector integration test against the Compose service.
 
 ## Currently Working On
 
-Automating authenticated weather, alert, and historical-data refreshes in Kestra.
+Rotating the exposed AEMET token, then validating historical backfill and daily incremental repair before enabling the two AEMET schedules.
 
 ## Next Steps
 
 ### High Priority
 
-1. Add a Kestra flow for authenticated Euskalmet forecasts and alerts with read-only secret mounts.
-2. Add a Kestra flow for AEMET station metadata and incremental daily observations.
+1. Rotate the AEMET token and update the mounted `api.pem` file.
+2. Backfill station `1012P` from 2024-01-01, validate the seven-day incremental repair window twice, and enable the two AEMET schedules.
 3. Select representative AEMET stations across coastal and inland Gipuzkoa for the historical corpus.
 
 ### Medium Priority
 
-1. Implement the ERA5-Land historical backfill and derive daily/monthly climate indicators.
+1. Implement the ERA5-Land historical backfill and derive daily/monthly climate indicators from the automated monthly files.
 2. Validate Euskalmet current-station and sensor-reading ingestion using selected Gipuzkoa stations.
 3. Validate the AEMET warning endpoint and store normalized hazard alerts.
 

@@ -1,0 +1,42 @@
+id: ingest_aemet_daily_incremental
+namespace: llm_zoomcamp_capstone
+disabled: true
+
+description: Incrementally refresh validated AEMET station 1012P with a repair window.
+
+concurrency:
+  limit: 1
+  behavior: QUEUE
+
+triggers:
+  - id: daily
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "30 7 * * *"
+    timezone: Europe/Madrid
+    recoverMissedSchedules: LAST
+
+tasks:
+  - id: refresh_1012p
+    type: io.kestra.plugin.scripts.shell.Commands
+    containerImage: gipuzkoa-askbot-ingestion:0.2.0
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      networkMode: askgipuzkoa-network
+      volumes:
+        - askgipuzkoa-ingestion-data:/data
+        - "{{ secret('AEMET_SECRET_DIR') }}:/run/secrets/aemet:ro"
+    env:
+      AEMET_API_KEY_PATH: /run/secrets/aemet/api.pem
+    commands:
+      - >-
+        PYTHONPATH=/app /app/.venv/bin/python -m app.ingest --database /data/ingestion.sqlite
+        refresh-aemet-daily --station 1012P --lag-days 2 --lookback-days 7
+        --chunk-days 31 --initial-start 2024-01-01
+        --as-of "{{ trigger.date ?? execution.startDate | date('yyyy-MM-dd') }}"
+    timeout: PT30M
+    retry:
+      type: exponential
+      interval: PT1M
+      maxInterval: PT5M
+      maxAttempts: 3
+      maxDuration: PT45M

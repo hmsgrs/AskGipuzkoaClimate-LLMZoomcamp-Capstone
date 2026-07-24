@@ -1,36 +1,66 @@
 id: ingest_official_documents
 namespace: llm_zoomcamp_capstone
+disabled: false
 
 description: |
   Refresh and index the bounded Euskalmet and Basque Government RAG corpus.
+
+concurrency:
+  limit: 1
+  behavior: QUEUE
 
 triggers:
   - id: monthly
     type: io.kestra.plugin.core.trigger.Schedule
     cron: "0 6 1 * *"
+    timezone: Europe/Madrid
+    recoverMissedSchedules: LAST
 
 tasks:
   - id: refresh_knowledge_corpus
     type: io.kestra.plugin.scripts.shell.Commands
-    containerImage: gipuzkoa-askbot-ingestion:latest
+    containerImage: gipuzkoa-askbot-ingestion:0.2.0
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      networkMode: askgipuzkoa-network
+      volumes:
+        - askgipuzkoa-ingestion-data:/data
+    timeout: PT30M
+    retry:
+      type: exponential
+      interval: PT1M
+      maxInterval: PT5M
+      maxAttempts: 3
     commands:
-      - uv run --no-sync python -m app.ingest --database /data/ingestion.sqlite knowledge-corpus
+      - PYTHONPATH=/app /app/.venv/bin/python -m app.ingest --database /data/ingestion.sqlite knowledge-corpus
 
   - id: synchronize_embeddings
     type: io.kestra.plugin.scripts.shell.Commands
-    containerImage: gipuzkoa-askbot-ingestion:latest
+    containerImage: gipuzkoa-askbot-ingestion:0.2.0
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      networkMode: askgipuzkoa-network
+      volumes:
+        - askgipuzkoa-ingestion-data:/data
+    timeout: PT30M
     env:
       OPENAI_API_KEY: "{{ secret('OPENAI_API_KEY') }}"
       DATABASE_URL: "{{ secret('DATABASE_URL') }}"
     commands:
-      - uv run --no-sync python -m app.ingest --database /data/ingestion.sqlite knowledge-embeddings
+      - PYTHONPATH=/app /app/.venv/bin/python -m app.ingest --database /data/ingestion.sqlite knowledge-embeddings
 
   - id: compare_retrieval
     type: io.kestra.plugin.scripts.shell.Commands
-    containerImage: gipuzkoa-askbot-ingestion:latest
+    containerImage: gipuzkoa-askbot-ingestion:0.2.0
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      networkMode: askgipuzkoa-network
+      volumes:
+        - askgipuzkoa-ingestion-data:/data
+    timeout: PT15M
     env:
       OPENAI_API_KEY: "{{ secret('OPENAI_API_KEY') }}"
       DATABASE_URL: "{{ secret('DATABASE_URL') }}"
     commands:
-      - uv run --no-sync python -m app.ingest --database /data/ingestion.sqlite knowledge-evaluation
-      - uv run --no-sync python -m app.ingest --database /data/ingestion.sqlite retrieval-comparison
+      - PYTHONPATH=/app /app/.venv/bin/python -m app.ingest --database /data/ingestion.sqlite knowledge-evaluation --questions /app/evaluation/retrieval_questions.json
+      - PYTHONPATH=/app /app/.venv/bin/python -m app.ingest --database /data/ingestion.sqlite retrieval-comparison

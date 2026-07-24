@@ -1,23 +1,22 @@
-id: ingest_euskalmet_homepage_alerts
+id: refresh_aemet_station_catalogue
 namespace: llm_zoomcamp_capstone
+disabled: true
 
-description: |
-  Refresh public Euskalmet Meteoadversa warning cards from the official homepage.
-  This flow does not ingest social-media content.
+description: Refresh AEMET station metadata and retain the Gipuzkoa subset.
 
 concurrency:
   limit: 1
   behavior: QUEUE
 
 triggers:
-  - id: every_fifteen_minutes
+  - id: monthly
     type: io.kestra.plugin.core.trigger.Schedule
-    cron: "*/15 * * * *"
+    cron: "15 3 1 * *"
     timezone: Europe/Madrid
     recoverMissedSchedules: LAST
 
 tasks:
-  - id: refresh_euskalmet_homepage_alerts
+  - id: refresh_catalogue
     type: io.kestra.plugin.scripts.shell.Commands
     containerImage: gipuzkoa-askbot-ingestion:0.2.0
     taskRunner:
@@ -25,11 +24,15 @@ tasks:
       networkMode: askgipuzkoa-network
       volumes:
         - askgipuzkoa-ingestion-data:/data
-    timeout: PT5M
+        - "{{ secret('AEMET_SECRET_DIR') }}:/run/secrets/aemet:ro"
+    env:
+      AEMET_API_KEY_PATH: /run/secrets/aemet/api.pem
+    commands:
+      - PYTHONPATH=/app /app/.venv/bin/python -m app.ingest --database /data/ingestion.sqlite aemet-stations
+    timeout: PT10M
     retry:
       type: exponential
-      interval: PT30S
-      maxInterval: PT2M
+      interval: PT1M
+      maxInterval: PT5M
       maxAttempts: 3
-    commands:
-      - PYTHONPATH=/app /app/.venv/bin/python -m app.ingest --database /data/ingestion.sqlite euskalmet-homepage-alerts
+      maxDuration: PT20M

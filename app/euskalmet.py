@@ -6,7 +6,8 @@ from datetime import date
 from pathlib import Path
 
 import jwt
-import requests
+
+from app.http_client import retry_session
 
 
 BASE_URL = "https://api.euskadi.eus"
@@ -53,7 +54,7 @@ class EuskalmetClient:
         )
         self.issuer = issuer or os.getenv("EUSKALMET_ISSUER", ISSUER)
         self.email = email or os.getenv("EUSKALMET_EMAIL")
-        self.session = session or requests.Session()
+        self.session = session or retry_session()
 
     def _claims(self, now: int):
         if not self.email:
@@ -94,12 +95,16 @@ class EuskalmetClient:
             },
             timeout=30,
         )
-        if response.status_code == 403:
+        if response.status_code in {401, 403}:
             raise RuntimeError(
-                "Euskalmet rejected the JWT. Verify that the API key is active and "
+                f"Euskalmet rejected the JWT with HTTP {response.status_code}. "
+                "Verify that the API key is active and "
                 "authorized for the met01 initiative."
             )
-        response.raise_for_status()
+        if not response.ok:
+            raise RuntimeError(
+                f"Euskalmet request failed with HTTP {response.status_code}"
+            )
         return response.json()
 
     def regions(self):

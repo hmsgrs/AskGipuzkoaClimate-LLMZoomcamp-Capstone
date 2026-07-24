@@ -1,0 +1,46 @@
+id: backfill_aemet_daily
+namespace: llm_zoomcamp_capstone
+
+description: Manually backfill a bounded AEMET daily-observation date range.
+
+inputs:
+  - id: station
+    type: STRING
+    defaults: 1012P
+  - id: start_date
+    type: STRING
+  - id: end_date
+    type: STRING
+  - id: chunk_days
+    type: INT
+    defaults: 31
+
+concurrency:
+  limit: 1
+  behavior: QUEUE
+
+tasks:
+  - id: backfill
+    type: io.kestra.plugin.scripts.shell.Commands
+    containerImage: gipuzkoa-askbot-ingestion:0.2.0
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      networkMode: askgipuzkoa-network
+      volumes:
+        - askgipuzkoa-ingestion-data:/data
+        - "{{ secret('AEMET_SECRET_DIR') }}:/run/secrets/aemet:ro"
+    env:
+      AEMET_API_KEY_PATH: /run/secrets/aemet/api.pem
+    commands:
+      - >-
+        PYTHONPATH=/app /app/.venv/bin/python -m app.ingest --database /data/ingestion.sqlite
+        backfill-aemet-daily --station "{{ inputs.station }}"
+        --start "{{ inputs.start_date }}" --end "{{ inputs.end_date }}"
+        --chunk-days "{{ inputs.chunk_days }}"
+    timeout: PT2H
+    retry:
+      type: exponential
+      interval: PT1M
+      maxInterval: PT10M
+      maxAttempts: 3
+      maxDuration: PT3H

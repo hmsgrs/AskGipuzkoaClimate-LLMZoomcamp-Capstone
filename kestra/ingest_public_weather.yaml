@@ -5,20 +5,48 @@ description: |
   Refresh public Euskalmet station metadata and normal-weather forecasts.
   The image contains the same Python source used for local ingestion.
 
+concurrency:
+  limit: 1
+  behavior: QUEUE
+
 triggers:
   - id: hourly
     type: io.kestra.plugin.core.trigger.Schedule
     cron: "0 * * * *"
+    timezone: Europe/Madrid
+    recoverMissedSchedules: LAST
 
 tasks:
   - id: refresh_station_catalogue
     type: io.kestra.plugin.scripts.shell.Commands
-    containerImage: gipuzkoa-askbot-ingestion:latest
+    containerImage: gipuzkoa-askbot-ingestion:0.2.0
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      networkMode: askgipuzkoa-network
+      volumes:
+        - askgipuzkoa-ingestion-data:/data
+    timeout: PT5M
+    retry:
+      type: exponential
+      interval: PT30S
+      maxInterval: PT2M
+      maxAttempts: 3
     commands:
-      - uv run --no-sync python -m app.ingest --database /data/ingestion.sqlite euskalmet-stations
+      - PYTHONPATH=/app /app/.venv/bin/python -m app.ingest --database /data/ingestion.sqlite euskalmet-stations
 
   - id: refresh_forecast
     type: io.kestra.plugin.scripts.shell.Commands
-    containerImage: gipuzkoa-askbot-ingestion:latest
+    containerImage: gipuzkoa-askbot-ingestion:0.2.0
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      networkMode: askgipuzkoa-network
+      volumes:
+        - askgipuzkoa-ingestion-data:/data
+    timeout: PT5M
+    retry:
+      type: exponential
+      interval: PT30S
+      maxInterval: PT2M
+      maxAttempts: 3
     commands:
-      - uv run --no-sync python -m app.ingest --database /data/ingestion.sqlite euskalmet-forecast
+      - PYTHONPATH=/app /app/.venv/bin/python -m app.ingest --database /data/ingestion.sqlite euskalmet-forecast

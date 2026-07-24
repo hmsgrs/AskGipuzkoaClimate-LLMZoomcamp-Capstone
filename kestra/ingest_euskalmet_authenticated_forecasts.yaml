@@ -1,0 +1,45 @@
+id: ingest_euskalmet_authenticated_forecasts
+namespace: llm_zoomcamp_capstone
+disabled: false
+
+description: Refresh the validated three-day Donostia location forecast.
+
+concurrency:
+  limit: 1
+  behavior: QUEUE
+
+triggers:
+  - id: hourly
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "10 * * * *"
+    timezone: Europe/Madrid
+    recoverMissedSchedules: LAST
+
+tasks:
+  - id: refresh_donostia
+    type: io.kestra.plugin.scripts.shell.Commands
+    containerImage: gipuzkoa-askbot-ingestion:0.2.0
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      networkMode: askgipuzkoa-network
+      volumes:
+        - askgipuzkoa-ingestion-data:/data
+        - "{{ secret('EUSKALMET_SECRET_DIR') }}:/run/secrets/euskalmet:ro"
+    env:
+      EUSKALMET_PRIVATE_KEY_PATH: /run/secrets/euskalmet/privateKey.pem
+      EUSKALMET_LOGIN_ID_PATH: /run/secrets/euskalmet/fingerPrint.txt
+      EUSKALMET_EMAIL: "{{ secret('EUSKALMET_EMAIL') }}"
+      EUSKALMET_ISSUER: gipuzkoa-weather-climate-askbot
+    commands:
+      - >-
+        PYTHONPATH=/app /app/.venv/bin/python -m app.ingest --database /data/ingestion.sqlite
+        refresh-euskalmet-forecasts --region basque_country --zone donostialdea
+        --location donostia --horizon-days 3
+        --as-of "{{ trigger.date ?? execution.startDate | date('yyyy-MM-dd') }}"
+    timeout: PT10M
+    retry:
+      type: exponential
+      interval: PT30S
+      maxInterval: PT3M
+      maxAttempts: 3
+      maxDuration: PT15M

@@ -48,11 +48,23 @@ uv run python -m app.ingest retrieval-comparison --limit 5
 
 # Public Euskalmet homepage Meteoadversa warning cards
 uv run python -m app.ingest euskalmet-homepage-alerts
+
+# Scheduled-operation equivalents with durable ingestion-run receipts
+uv run python -m app.ingest refresh-euskalmet-alerts \
+  --zone GIPUZKOA_COAST --as-of 2026-07-22
+uv run python -m app.ingest refresh-euskalmet-forecasts \
+  --region basque_country --zone donostialdea --location donostia \
+  --horizon-days 3 --as-of 2026-07-22
+uv run python -m app.ingest refresh-aemet-daily \
+  --station 1012P --as-of 2026-07-22 --lag-days 2 \
+  --lookback-days 7 --chunk-days 31 --initial-start 2024-01-01
+uv run python -m app.ingest backfill-aemet-daily \
+  --station 1012P --start 2024-01-01 --end 2024-01-31 --chunk-days 31
 ```
 
 All commands default to `data/processed/ingestion.sqlite`. This file is intentionally ignored by Git.
 
-Authenticated snapshot commands print a JSON receipt rather than the complete provider payload. `upserted: 1` means one API response was stored successfully; `table`, `database`, `record_id`, and `source_url` identify where it was written.
+Authenticated snapshot commands print a JSON receipt rather than the complete provider payload. `upserted: 1` means one API response was stored successfully; `table`, `database`, `record_id`, and `source_url` identify where it was written. Bulk refresh commands also write a durable row to `ingestion_runs` and report their requested, succeeded, and failed work units. A file lock serializes schema initialization; WAL mode and the 60-second SQLite busy timeout coordinate the short write transactions without holding a lock during network requests.
 
 ## Operational Data Types
 
@@ -104,9 +116,32 @@ Euskalmet uses hierarchical string IDs, not INE municipality codes. Discover loc
 Build the ingestion image:
 
 ```bash
-docker build -f Dockerfile.ingestion -t gipuzkoa-askbot-ingestion:latest .
+# First set non-empty POSTGRES_PASSWORD and KESTRA_PASSWORD values in .env.
+docker compose --profile build build ingestion-image
+docker compose up -d postgres kestra
 ```
 
-Import `kestra/ingest_public_weather.yaml`, `kestra/ingest_euskalmet_homepage_alerts.yaml`, and `kestra/ingest_official_documents.yaml` into Kestra. The flows refresh normal weather hourly, official Euskalmet homepage warning cards every 15 minutes, and the canonical knowledge corpus monthly. The corpus flow then synchronizes embeddings and compares FTS5 with pgvector. Configure persistent storage at `/data` and Kestra secrets named `OPENAI_API_KEY` and `DATABASE_URL`.
+The Compose stack pins Kestra `v1.0.0`, PostgreSQL/pgvector, the `gipuzkoa-askbot-ingestion:0.2.0` image, an explicit Docker network, and the shared `askgipuzkoa-ingestion-data` volume. Kestra's Docker task runner replaces the image working directory, so every flow invokes `/app/.venv/bin/python` with `PYTHONPATH=/app`; keep this invariant when adding tasks.
 
-Authenticated AEMET and Euskalmet flows are intentionally not scheduled until their credentials return successful smoke tests.
+Validate the complete flow directory before importing it:
+
+```bash
+docker run --rm -v "$PWD/kestra:/flows:ro" \
+  kestra/kestra:v1.0.0 flow validate --local /flows
+```
+
+| Flow | Schedule | Credentials | Current state |
+|---|---|---|---|
+| `ingest_public_weather` | Hourly | None | Enabled |
+| `ingest_euskalmet_homepage_alerts` | Every 15 minutes | None | Enabled |
+| `ingest_euskalmet_authenticated_forecasts` | Hourly at minute 10 | Euskalmet | Enabled and live-validated |
+| `ingest_euskalmet_authenticated_alerts` | Every 15 minutes, offset by 2 minutes | Euskalmet | Enabled and live-validated |
+| `refresh_aemet_station_catalogue` | Monthly | AEMET | Disabled pending token rotation |
+| `ingest_aemet_daily_incremental` | Daily | AEMET | Disabled pending backfill validation |
+| `backfill_aemet_daily` | Manual, bounded inputs | AEMET | Manual only |
+| `ingest_era5_land_monthly` | Monthly on day 10 | CDS | Enabled and live-validated |
+| `ingest_official_documents` | Monthly | OpenAI and PostgreSQL | Enabled and live-validated |
+
+Set `KESTRA_USERNAME` to a valid email address and set a unique, non-empty `KESTRA_PASSWORD`; invalid usernames cause Kestra `v1.0.0` to retain its built-in account. Compose deliberately has no example-password fallback because Kestra can control Docker through the mounted socket. Kestra OSS reads `SECRET_*` environment variables as Base64-encoded values. Populate the `KESTRA_SECRET_*_B64` entries in `.env` before starting Kestra. `EUSKALMET_SECRET_DIR` and `AEMET_SECRET_DIR` must decode to absolute host directories that Docker can mount read-only; `CDS_CONFIG_PATH` must decode to the absolute host path of `.cdsapirc`. The task-container `DATABASE_URL` uses the Compose hostname `postgres`, not `localhost`.
+
+The nine flows validate and import with the pinned runtime. Real Docker executions verify public weather, homepage warning cards, authenticated Euskalmet alerts and forecasts, monthly ERA5-Land, and corpus/vector refreshes. ERA5 reruns skip an already valid data/manifest pair; unchanged corpus reruns embed zero chunks. AEMET schedules remain disabled until the runtime token is rotated and historical/incremental validation succeeds. The bounded AEMET backfill remains manual-only.

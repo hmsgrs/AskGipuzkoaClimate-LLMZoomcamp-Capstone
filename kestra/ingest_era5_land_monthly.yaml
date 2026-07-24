@@ -1,0 +1,39 @@
+id: ingest_era5_land_monthly
+namespace: llm_zoomcamp_capstone
+disabled: false
+
+description: Download and atomically publish the previous ERA5-Land calendar month.
+
+concurrency:
+  limit: 1
+  behavior: QUEUE
+
+triggers:
+  - id: monthly
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "0 4 10 * *"
+    timezone: Europe/Madrid
+    recoverMissedSchedules: LAST
+
+tasks:
+  - id: download_previous_month
+    type: io.kestra.plugin.scripts.shell.Commands
+    containerImage: gipuzkoa-askbot-ingestion:0.2.0
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      networkMode: askgipuzkoa-network
+      volumes:
+        - askgipuzkoa-ingestion-data:/data
+        - "{{ secret('CDS_CONFIG_PATH') }}:/root/.cdsapirc:ro"
+    commands:
+      - >-
+        PYTHONPATH=/app /app/.venv/bin/python -m app.climate_ingest --monthly
+        --as-of "{{ trigger.date ?? execution.startDate | date('yyyy-MM-dd') }}"
+        --output-root /data/raw/era5-land
+    timeout: PT6H
+    retry:
+      type: exponential
+      interval: PT5M
+      maxInterval: PT30M
+      maxAttempts: 3
+      maxDuration: PT8H

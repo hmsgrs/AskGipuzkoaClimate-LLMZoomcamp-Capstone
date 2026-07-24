@@ -4,11 +4,14 @@ import argparse
 import hashlib
 import json
 import sqlite3
-from datetime import UTC, date, datetime
+import uuid
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from xml.etree import ElementTree
+from zoneinfo import ZoneInfo
 
 import requests
+from filelock import FileLock
 
 from app.aemet import AemetClient
 from app.euskalmet import ALERT_ZONES, BASE_URL as EUSKALMET_BASE_URL, EuskalmetClient
@@ -35,6 +38,7 @@ FORECAST_URL = (
     "met_forecast/opendata/met_forecast.xml"
 )
 DEFAULT_DATABASE = Path("data/processed/ingestion.sqlite")
+MADRID = ZoneInfo("Europe/Madrid")
 
 
 def utc_now():
@@ -43,7 +47,9 @@ def utc_now():
 
 def get_database(path: Path = DEFAULT_DATABASE):
     path.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(path)
+    connection = sqlite3.connect(path, timeout=60)
+    connection.execute("PRAGMA journal_mode = WAL")
+    connection.execute("PRAGMA busy_timeout = 60000")
     connection.execute(
         """
         CREATE TABLE IF NOT EXISTS weather_stations (
@@ -114,8 +120,35 @@ def get_database(path: Path = DEFAULT_DATABASE):
         )
         """
     )
+    _ensure_column(connection, "hazard_alerts", "request_json", "TEXT NOT NULL DEFAULT '{}'")
+    _ensure_column(
+        connection, "weather_api_snapshots", "request_json", "TEXT NOT NULL DEFAULT '{}'"
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS ingestion_runs (
+            run_id TEXT PRIMARY KEY,
+            flow_id TEXT NOT NULL,
+            started_at TEXT NOT NULL,
+            finished_at TEXT,
+            status TEXT NOT NULL,
+            requested INTEGER NOT NULL DEFAULT 0,
+            succeeded INTEGER NOT NULL DEFAULT 0,
+            failed INTEGER NOT NULL DEFAULT 0,
+            upserted INTEGER NOT NULL DEFAULT 0,
+            max_observed_date TEXT,
+            error TEXT
+        )
+        """
+    )
     initialize_knowledge_base(connection)
     return connection
+
+
+def _ensure_column(connection, table: str, column: str, definition: str):
+    columns = {row[1] for row in connection.execute(f"PRAGMA table_info({table})")}
+    if column not in columns:
+        connection.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
 
 def load_euskalmet_stations(session=None):
@@ -266,31 +299,48 @@ def save_aemet_daily_observations(connection, observations):
     return len(rows)
 
 
-def save_alert_snapshot(connection, provider, payload, source_url):
+def _content_address(provider, request, payload):
+    identity = json.dumps(
+        {"provider": provider, "request": request or {}, "payload": payload},
+        ensure_ascii=True,
+        sort_keys=True,
+    )
+    return hashlib.sha256(identity.encode()).hexdigest()
+
+
+def save_alert_snapshot(connection, provider, payload, source_url, request=None):
     serialized = json.dumps(payload, ensure_ascii=True, sort_keys=True)
-    alert_id = hashlib.sha256(serialized.encode()).hexdigest()
+    request_json = json.dumps(request or {}, ensure_ascii=True, sort_keys=True)
+    alert_id = _content_address(provider, request, payload)
     connection.execute(
         """
-        INSERT INTO hazard_alerts VALUES (?, ?, ?, ?, ?)
+        INSERT INTO hazard_alerts
+            (provider, alert_id, payload_json, source_url, retrieved_at, request_json)
+        VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(provider, alert_id) DO UPDATE SET
-            payload_json=excluded.payload_json, retrieved_at=excluded.retrieved_at
+            payload_json=excluded.payload_json, source_url=excluded.source_url,
+            retrieved_at=excluded.retrieved_at, request_json=excluded.request_json
         """,
-        (provider, alert_id, serialized, source_url, utc_now()),
+        (provider, alert_id, serialized, source_url, utc_now(), request_json),
     )
     connection.commit()
     return alert_id
 
 
-def save_weather_snapshot(connection, provider, payload, source_url):
+def save_weather_snapshot(connection, provider, payload, source_url, request=None):
     serialized = json.dumps(payload, ensure_ascii=True, sort_keys=True)
-    snapshot_id = hashlib.sha256(serialized.encode()).hexdigest()
+    request_json = json.dumps(request or {}, ensure_ascii=True, sort_keys=True)
+    snapshot_id = _content_address(provider, request, payload)
     connection.execute(
         """
-        INSERT INTO weather_api_snapshots VALUES (?, ?, ?, ?, ?)
+        INSERT INTO weather_api_snapshots
+            (provider, snapshot_id, payload_json, source_url, retrieved_at, request_json)
+        VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(provider, snapshot_id) DO UPDATE SET
-            payload_json=excluded.payload_json, retrieved_at=excluded.retrieved_at
+            payload_json=excluded.payload_json, source_url=excluded.source_url,
+            retrieved_at=excluded.retrieved_at, request_json=excluded.request_json
         """,
-        (provider, snapshot_id, serialized, source_url, utc_now()),
+        (provider, snapshot_id, serialized, source_url, utc_now(), request_json),
     )
     connection.commit()
     return snapshot_id
@@ -314,8 +364,269 @@ def print_snapshot_result(database, table, record_id, source_url):
 
 def save_euskalmet_homepage(connection, homepage):
     for alert in homepage["alerts"]:
-        save_alert_snapshot(connection, homepage["source_id"], alert, homepage["url"])
+        save_alert_snapshot(
+            connection,
+            homepage["source_id"],
+            alert,
+            homepage["url"],
+            {"source_id": homepage["source_id"]},
+        )
     return len(homepage["alerts"])
+
+
+def begin_run(connection, flow_id: str):
+    run_id = uuid.uuid4().hex
+    connection.execute(
+        "INSERT INTO ingestion_runs (run_id, flow_id, started_at, status) VALUES (?, ?, ?, ?)",
+        (run_id, flow_id, utc_now(), "running"),
+    )
+    connection.commit()
+    return run_id
+
+
+def finish_run(
+    connection,
+    run_id: str,
+    *,
+    status: str,
+    requested: int,
+    succeeded: int,
+    failed: int,
+    upserted: int,
+    max_observed_date: str | None = None,
+    error: str | None = None,
+):
+    connection.execute(
+        """
+        UPDATE ingestion_runs SET
+            finished_at=?, status=?, requested=?, succeeded=?, failed=?,
+            upserted=?, max_observed_date=?, error=?
+        WHERE run_id=?
+        """,
+        (
+            utc_now(),
+            status,
+            requested,
+            succeeded,
+            failed,
+            upserted,
+            max_observed_date,
+            error,
+            run_id,
+        ),
+    )
+    connection.commit()
+    return {
+        "run_id": run_id,
+        "status": status,
+        "requested": requested,
+        "succeeded": succeeded,
+        "failed": failed,
+        "upserted": upserted,
+        "max_observed_date": max_observed_date,
+    }
+
+
+def operation_date(value: str | None):
+    return date.fromisoformat(value) if value else datetime.now(MADRID).date()
+
+
+def date_chunks(start: date, end: date, chunk_days: int):
+    if start > end:
+        return []
+    if chunk_days <= 0:
+        raise ValueError("chunk_days must be positive")
+    chunks = []
+    current = start
+    while current <= end:
+        chunk_end = min(current + timedelta(days=chunk_days - 1), end)
+        chunks.append((current, chunk_end))
+        current = chunk_end + timedelta(days=1)
+    return chunks
+
+
+def refresh_euskalmet_alerts(connection, zone, as_of=None, client=None):
+    issued_date = operation_date(as_of)
+    client = client or EuskalmetClient()
+    flow_id = "ingest_euskalmet_authenticated_alerts"
+    run_id = begin_run(connection, flow_id)
+    request = {"zone": zone, "issued_date": issued_date.isoformat()}
+    try:
+        payload = client.alert_forecast(zone, issued_date)
+        path = f"/euskalmet/alerts/zones/{zone}/forecast/at/{issued_date:%Y/%m/%d}"
+        save_alert_snapshot(
+            connection,
+            "euskalmet-alerts",
+            payload,
+            f"{EUSKALMET_BASE_URL}{path}",
+            request,
+        )
+        return finish_run(
+            connection,
+            run_id,
+            status="ok",
+            requested=1,
+            succeeded=1,
+            failed=0,
+            upserted=1,
+        )
+    except Exception as error:
+        finish_run(
+            connection,
+            run_id,
+            status="failed",
+            requested=1,
+            succeeded=0,
+            failed=1,
+            upserted=0,
+            error=str(error),
+        )
+        raise
+
+
+def refresh_euskalmet_forecasts(
+    connection,
+    region,
+    zone,
+    location,
+    horizon_days=3,
+    as_of=None,
+    client=None,
+):
+    if horizon_days <= 0:
+        raise ValueError("horizon_days must be positive")
+    issued_date = operation_date(as_of)
+    client = client or EuskalmetClient()
+    flow_id = "ingest_euskalmet_authenticated_forecasts"
+    run_id = begin_run(connection, flow_id)
+    succeeded = 0
+    try:
+        for offset in range(horizon_days):
+            target_date = issued_date + timedelta(days=offset)
+            payload = client.location_forecast(
+                region, zone, location, issued_date, target_date
+            )
+            path = (
+                f"/euskalmet/weather/regions/{region}/zones/{zone}/"
+                f"locations/{location}/forecast/at/{issued_date:%Y/%m/%d}/"
+                f"for/{target_date:%Y%m%d}"
+            )
+            save_weather_snapshot(
+                connection,
+                "euskalmet-location-forecast",
+                payload,
+                f"{EUSKALMET_BASE_URL}{path}",
+                {
+                    "region": region,
+                    "zone": zone,
+                    "location": location,
+                    "issued_date": issued_date.isoformat(),
+                    "target_date": target_date.isoformat(),
+                },
+            )
+            succeeded += 1
+        return finish_run(
+            connection,
+            run_id,
+            status="ok",
+            requested=horizon_days,
+            succeeded=succeeded,
+            failed=0,
+            upserted=succeeded,
+        )
+    except Exception as error:
+        finish_run(
+            connection,
+            run_id,
+            status="failed",
+            requested=horizon_days,
+            succeeded=succeeded,
+            failed=horizon_days - succeeded,
+            upserted=succeeded,
+            error=str(error),
+        )
+        raise
+
+
+def refresh_aemet_daily(
+    connection,
+    station,
+    as_of=None,
+    lag_days=2,
+    lookback_days=7,
+    chunk_days=31,
+    initial_start="2024-01-01",
+    start_date=None,
+    end_date=None,
+    client=None,
+):
+    if min(lag_days, lookback_days) < 0 or lookback_days == 0:
+        raise ValueError("lag_days must be non-negative and lookback_days must be positive")
+    is_backfill = start_date is not None or end_date is not None
+    if is_backfill:
+        if not start_date or not end_date:
+            raise ValueError("AEMET backfill requires non-empty start and end dates")
+        start = date.fromisoformat(start_date)
+        end = date.fromisoformat(end_date)
+    else:
+        end = operation_date(as_of) - timedelta(days=lag_days)
+        watermark = connection.execute(
+            "SELECT MAX(observed_date) FROM aemet_daily_observations WHERE station_id = ?",
+            (station,),
+        ).fetchone()[0]
+        repair_start = end - timedelta(days=lookback_days - 1)
+        start = (
+            min(date.fromisoformat(watermark) + timedelta(days=1), repair_start)
+            if watermark
+            else date.fromisoformat(initial_start)
+        )
+    if start > end:
+        raise ValueError("AEMET start date must not be after end date")
+    ranges = date_chunks(start, end, chunk_days)
+    client = client or AemetClient()
+    flow_id = "backfill_aemet_daily" if is_backfill else "ingest_aemet_daily_incremental"
+    run_id = begin_run(connection, flow_id)
+    upserted = 0
+    succeeded = 0
+    try:
+        for chunk_start, chunk_end in ranges:
+            observations = client.daily_observations(
+                station, chunk_start.isoformat(), chunk_end.isoformat()
+            )
+            for observation in observations:
+                if observation.get("indicativo") != station:
+                    raise ValueError("AEMET returned an unexpected station")
+                observed = date.fromisoformat(observation["fecha"])
+                if not chunk_start <= observed <= chunk_end:
+                    raise ValueError("AEMET returned a date outside the requested range")
+            upserted += save_aemet_daily_observations(connection, observations)
+            succeeded += 1
+        maximum = connection.execute(
+            "SELECT MAX(observed_date) FROM aemet_daily_observations WHERE station_id = ?",
+            (station,),
+        ).fetchone()[0]
+        return finish_run(
+            connection,
+            run_id,
+            status="ok",
+            requested=len(ranges),
+            succeeded=succeeded,
+            failed=0,
+            upserted=upserted,
+            max_observed_date=maximum,
+        )
+    except Exception as error:
+        finish_run(
+            connection,
+            run_id,
+            status="failed",
+            requested=len(ranges),
+            succeeded=succeeded,
+            failed=len(ranges) - succeeded,
+            upserted=upserted,
+            error=str(error),
+        )
+        raise
 
 
 def parse_args():
@@ -355,6 +666,31 @@ def parse_args():
     alerts.add_argument("--target", help="Optional target date, YYYY-MM-DD")
     subparsers.add_parser("euskalmet-homepage-alerts")
 
+    alert_refresh = subparsers.add_parser("refresh-euskalmet-alerts")
+    alert_refresh.add_argument("--zone", choices=ALERT_ZONES, default="GIPUZKOA_COAST")
+    alert_refresh.add_argument("--as-of", help="Europe/Madrid date, YYYY-MM-DD")
+
+    forecast_refresh = subparsers.add_parser("refresh-euskalmet-forecasts")
+    forecast_refresh.add_argument("--region", default="basque_country")
+    forecast_refresh.add_argument("--zone", default="donostialdea")
+    forecast_refresh.add_argument("--location", default="donostia")
+    forecast_refresh.add_argument("--horizon-days", type=int, default=3)
+    forecast_refresh.add_argument("--as-of", help="Europe/Madrid date, YYYY-MM-DD")
+
+    aemet_refresh = subparsers.add_parser("refresh-aemet-daily")
+    aemet_refresh.add_argument("--station", default="1012P")
+    aemet_refresh.add_argument("--as-of", help="Europe/Madrid date, YYYY-MM-DD")
+    aemet_refresh.add_argument("--lag-days", type=int, default=2)
+    aemet_refresh.add_argument("--lookback-days", type=int, default=7)
+    aemet_refresh.add_argument("--chunk-days", type=int, default=31)
+    aemet_refresh.add_argument("--initial-start", default="2024-01-01")
+
+    aemet_backfill = subparsers.add_parser("backfill-aemet-daily")
+    aemet_backfill.add_argument("--station", default="1012P")
+    aemet_backfill.add_argument("--start", required=True, help="YYYY-MM-DD")
+    aemet_backfill.add_argument("--end", required=True, help="YYYY-MM-DD")
+    aemet_backfill.add_argument("--chunk-days", type=int, default=31)
+
     source = subparsers.add_parser("knowledge-source")
     source.add_argument("--source", choices=tuple(SOURCES_BY_ID), required=True)
     subparsers.add_parser("knowledge-corpus")
@@ -385,7 +721,10 @@ def parse_args():
 
 def main():
     args = parse_args()
-    connection = get_database(args.database)
+    lock = FileLock(f"{args.database}.lock", timeout=60)
+    # Serialize schema initialization only; SQLite WAL handles short write transactions.
+    with lock:
+        connection = get_database(args.database)
     try:
         if args.command == "euskalmet-stations":
             print(save_euskalmet_stations(connection, load_euskalmet_stations()))
@@ -414,6 +753,13 @@ def main():
                 "euskalmet-location-forecast",
                 payload,
                 f"{EUSKALMET_BASE_URL}{path}",
+                {
+                    "region": args.region,
+                    "zone": args.zone,
+                    "location": args.location,
+                    "issued_date": issued_date.isoformat(),
+                    "target_date": target_date.isoformat(),
+                },
             )
             print_snapshot_result(
                 args.database,
@@ -425,7 +771,11 @@ def main():
             payload = EuskalmetClient().current_station(args.station)
             path = f"/euskalmet/stations/{args.station}/current"
             snapshot_id = save_weather_snapshot(
-                connection, "euskalmet-station-current", payload, f"{EUSKALMET_BASE_URL}{path}"
+                connection,
+                "euskalmet-station-current",
+                payload,
+                f"{EUSKALMET_BASE_URL}{path}",
+                {"station": args.station},
             )
             print_snapshot_result(
                 args.database,
@@ -449,7 +799,18 @@ def main():
                 f"at/{observed_at:%Y/%m/%d}/{args.hour:02d}"
             )
             snapshot_id = save_weather_snapshot(
-                connection, "euskalmet-readings", payload, f"{EUSKALMET_BASE_URL}{path}"
+                connection,
+                "euskalmet-readings",
+                payload,
+                f"{EUSKALMET_BASE_URL}{path}",
+                {
+                    "station": args.station,
+                    "sensor": args.sensor,
+                    "measure_type": args.measure_type,
+                    "measure": args.measure,
+                    "date": observed_at.isoformat(),
+                    "hour": args.hour,
+                },
             )
             print_snapshot_result(
                 args.database,
@@ -474,6 +835,11 @@ def main():
                 "euskalmet-alerts",
                 payload,
                 f"{EUSKALMET_BASE_URL}{path}",
+                {
+                    "zone": args.zone,
+                    "issued_date": issued_date.isoformat(),
+                    "target_date": target_date.isoformat() if target_date else None,
+                },
             )
             print_snapshot_result(
                 args.database,
@@ -483,6 +849,57 @@ def main():
             )
         elif args.command == "euskalmet-homepage-alerts":
             print(json.dumps(save_euskalmet_homepage(connection, fetch_euskalmet_homepage())))
+        elif args.command == "refresh-euskalmet-alerts":
+            print(
+                json.dumps(
+                    refresh_euskalmet_alerts(
+                        connection, args.zone, as_of=args.as_of
+                    ),
+                    indent=2,
+                )
+            )
+        elif args.command == "refresh-euskalmet-forecasts":
+            print(
+                json.dumps(
+                    refresh_euskalmet_forecasts(
+                        connection,
+                        args.region,
+                        args.zone,
+                        args.location,
+                        args.horizon_days,
+                        args.as_of,
+                    ),
+                    indent=2,
+                )
+            )
+        elif args.command == "refresh-aemet-daily":
+            print(
+                json.dumps(
+                    refresh_aemet_daily(
+                        connection,
+                        args.station,
+                        as_of=args.as_of,
+                        lag_days=args.lag_days,
+                        lookback_days=args.lookback_days,
+                        chunk_days=args.chunk_days,
+                        initial_start=args.initial_start,
+                    ),
+                    indent=2,
+                )
+            )
+        elif args.command == "backfill-aemet-daily":
+            print(
+                json.dumps(
+                    refresh_aemet_daily(
+                        connection,
+                        args.station,
+                        chunk_days=args.chunk_days,
+                        start_date=args.start,
+                        end_date=args.end,
+                    ),
+                    indent=2,
+                )
+            )
         elif args.command == "knowledge-source":
             result = ingest_source(connection, SOURCES_BY_ID[args.source])
             print(json.dumps({"source_id": args.source, **result}, indent=2))
