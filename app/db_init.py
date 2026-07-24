@@ -57,10 +57,63 @@ def initialize_pgvector(connection, dimensions: int | None = None):
     connection.commit()
 
 
+def initialize_application_schema(connection):
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS conversations (
+            id BIGSERIAL PRIMARY KEY,
+            question TEXT NOT NULL,
+            answer TEXT NOT NULL,
+            route TEXT NOT NULL,
+            language TEXT NOT NULL,
+            retrieval_backend TEXT NOT NULL,
+            model TEXT,
+            instructions TEXT,
+            prompt TEXT,
+            prompt_tokens INTEGER NOT NULL DEFAULT 0,
+            completion_tokens INTEGER NOT NULL DEFAULT 0,
+            total_tokens INTEGER NOT NULL DEFAULT 0,
+            response_time DOUBLE PRECISION NOT NULL DEFAULT 0,
+            cost DOUBLE PRECISION NOT NULL DEFAULT 0,
+            citations JSONB NOT NULL DEFAULT '[]'::jsonb,
+            status TEXT NOT NULL DEFAULT 'success',
+            timestamp TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS feedback (
+            id BIGSERIAL PRIMARY KEY,
+            conversation_id BIGINT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+            source TEXT NOT NULL CHECK (source IN ('user', 'judge')),
+            relevance TEXT CHECK (
+                relevance IS NULL OR relevance IN (
+                    'NON_RELEVANT', 'PARTLY_RELEVANT', 'RELEVANT'
+                )
+            ),
+            explanation TEXT,
+            score INTEGER CHECK (score IS NULL OR score IN (-1, 1)),
+            comment TEXT,
+            timestamp TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (conversation_id, source)
+        )
+        """
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS conversations_timestamp_idx ON conversations (timestamp)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS feedback_timestamp_idx ON feedback (timestamp)"
+    )
+    connection.commit()
+
+
 def main():
     with connect() as connection:
         initialize_pgvector(connection)
-    print("pgvector schema initialized")
+        initialize_application_schema(connection)
+    print("PostgreSQL schemas initialized")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,33 @@
+{
+  "evaluation_date": "2026-07-24",
+  "backend": "pgvector",
+  "generation_model": "gpt-5.4-mini",
+  "judge_model": "gpt-5.4-mini",
+  "questions": 6,
+  "selected_variant": "citation_safety",
+  "estimated_generation_cost": 0.02247675,
+  "estimated_judge_cost": 0.0277005,
+  "total_tokens": 53853,
+  "summaries": {
+    "course_baseline": {
+      "relevance": 5.0,
+      "grounding": 4.833333333333333,
+      "citation_correctness": 1.8333333333333333,
+      "language_quality": 5.0,
+      "safety": 5.0,
+      "overall": 3.6666666666666665,
+      "citation_contract_rate": 0.16666666666666666,
+      "required_source_recall": 0.16666666666666666
+    },
+    "citation_safety": {
+      "relevance": 4.833333333333333,
+      "grounding": 4.666666666666667,
+      "citation_correctness": 4.5,
+      "language_quality": 5.0,
+      "safety": 4.666666666666667,
+      "overall": 4.833333333333333,
+      "citation_contract_rate": 1.0,
+      "required_source_recall": 1.0
+    }
+  }
+}

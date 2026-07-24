@@ -27,6 +27,9 @@ def evaluate_repository(repository, method: str, database: Path, limit: int = 5)
         results = repository.search(question["question"], limit=limit)
         retrieved_sources = list(dict.fromkeys(row["source_id"] for row in results))
         hit = question["expected_source_id"] in retrieved_sources
+        rank = (
+            retrieved_sources.index(question["expected_source_id"]) + 1 if hit else None
+        )
         language = question["language"]
         language_totals[language] = language_totals.get(language, 0) + 1
         language_hits[language] = language_hits.get(language, 0) + int(hit)
@@ -37,6 +40,8 @@ def evaluate_repository(repository, method: str, database: Path, limit: int = 5)
                 "expected_source_id": question["expected_source_id"],
                 "retrieved_source_ids": retrieved_sources,
                 "hit": hit,
+                "rank": rank,
+                "reciprocal_rank": 1 / rank if rank else 0.0,
             }
         )
 
@@ -48,6 +53,9 @@ def evaluate_repository(repository, method: str, database: Path, limit: int = 5)
         "questions": total,
         "hits": hits,
         "hit_rate": hits / total if total else 0.0,
+        "mrr": (
+            sum(item["reciprocal_rank"] for item in details) / total if total else 0.0
+        ),
         "hit_rate_by_language": {
             language: language_hits.get(language, 0) / count
             for language, count in language_totals.items()

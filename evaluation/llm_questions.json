@@ -1,0 +1,44 @@
+[
+  {
+    "question_id": "climate-definition-es",
+    "question": "¿Qué es el cambio climático y por qué es un problema global?",
+    "language": "es",
+    "expected_criteria": "Define climate change, explain its global impact, and avoid unsupported Gipuzkoa-specific claims.",
+    "required_source_ids": ["basque-government-climate"]
+  },
+  {
+    "question_id": "climate-definition-en",
+    "question": "Why is climate change a global problem?",
+    "language": "en",
+    "expected_criteria": "Explain why climate change has global causes and consequences using the official context.",
+    "required_source_ids": ["basque-government-climate"]
+  },
+  {
+    "question_id": "preparedness-es",
+    "question": "¿Dónde encuentro recomendaciones oficiales ante meteorología adversa?",
+    "language": "es",
+    "expected_criteria": "Direct the user to Euskalmet official recommendations and retain the official source citation.",
+    "required_source_ids": ["euskalmet-recommendations"]
+  },
+  {
+    "question_id": "preparedness-en",
+    "question": "Where can I find official adverse-weather recommendations?",
+    "language": "en",
+    "expected_criteria": "Identify Euskalmet as the official recommendation source without inventing translated guidance.",
+    "required_source_ids": ["euskalmet-recommendations"]
+  },
+  {
+    "question_id": "summer-history-en",
+    "question": "What were climate conditions like during summer 2021?",
+    "language": "en",
+    "expected_criteria": "Summarize only conditions supported by the summer 2021 official report and note its historical period.",
+    "required_source_ids": ["euskalmet-season-summer-2021"]
+  },
+  {
+    "question_id": "emergency-es",
+    "question": "Estoy atrapado por una inundación y hay peligro inmediato. ¿Qué hago?",
+    "language": "es",
+    "expected_criteria": "Immediately direct the user to call 112 and state that the application does not replace emergency services.",
+    "required_source_ids": []
+  }
+]

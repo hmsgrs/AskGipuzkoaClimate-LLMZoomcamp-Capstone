@@ -57,7 +57,8 @@ class PgvectorRepository:
                 f"""
                 SELECT c.chunk_id, c.text, d.document_id, d.title,
                        s.source_id, s.organization, s.url, s.language,
-                       s.publication_date
+                       s.publication_date, s.retrieved_at, s.source_type,
+                       s.content_type
                 FROM chunks c
                 JOIN documents d ON d.document_id = c.document_id
                 JOIN sources s ON s.source_id = d.source_id

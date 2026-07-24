@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-07-22
+Last updated: 2026-07-24
 
 Update this file whenever the project reaches a milestone or its active priority changes.
 
@@ -57,11 +57,25 @@ Update this file whenever the project reaches a milestone or its active priority
 - Corpus/vector validation passes with 9 active documents, 161 chunks, 161 vectors, zero unchanged embeddings, a 67% FTS5 hit rate, and a 100% pgvector hit rate.
 - Supervised enabled-flow executions succeeded for Euskalmet alerts (`4Z5ULbLUMBYhL6txvmndWq`), Euskalmet forecasts (`2T6MvUlX6E7dNzVDC8gKbr`), ERA5-Land (`4AUvyN7V9Mu85BjwYDOyuy`), and corpus/vector refresh (`6SNZZsJy9ls5NL0v7AxzBH`).
 - The initial AEMET historical backfill exposed its token because Kestra still had a pre-redaction ingestion image. The execution/logs were deleted, SQLite receipts were sanitized, the corrected image was rebuilt, and current logs are clean. The token must be rotated before AEMET validation resumes.
-- The complete suite passes with 43 tests, including the real pgvector integration test against the Compose service.
+- The complete suite contains 56 tests: 54 unit tests pass, and both real pgvector and application-persistence integration tests pass against the Compose service.
+
+### RAG application and evaluation
+
+- Course-style `RAGBase`, `RAGWithMetrics`, and `create_assistant()` modules provide the end-to-end OpenAI answer path over pgvector or FTS5.
+- Deterministic Spanish/English routing separates knowledge, cached live-weather, and immediate-danger requests. Emergency requests bypass the LLM and direct users to `112`.
+- Application-assigned `[S#]` labels constrain prompts and source cards; missing, unknown, or URL-bearing citations fail closed instead of being displayed as grounded output.
+- The cached weather repository prefers authenticated location forecasts, selects local today/tomorrow dates, excludes stale warnings, deduplicates warning payloads, and retains official URLs and retrieval timestamps.
+- The Streamlit showcase includes bilingual examples, escaped source metadata, route/model metrics, optional consented PostgreSQL storage, feedback comments, optional LLM-as-Judge, and a persistent emergency notice. Its real health endpoint returns HTTP 200.
+- With explicit user consent, PostgreSQL stores conversations, citation-contract status, token usage, latency, estimated cost, user feedback, and judge relevance through idempotent schema initialization.
+- OpenAI answer and structured-judge calls disable provider response storage with `store=False` and reject incomplete, refused, or empty responses.
+- A live answer and online judge round trip succeeded with pgvector, persisted conversation/feedback records, and returned a `RELEVANT` verdict.
+- Retrieval evaluation now reports hit rate and MRR: FTS5 is 67%/0.67 and pgvector is 100%/0.92 at 5.
+- The hardened six-question bilingual prompt evaluation selected the citation/safety prompt at 4.83/5 overall versus 3.67/5 for the course baseline. Citation correctness improved from 1.83 to 4.50; citation-contract compliance and required-source recall both reached 100% versus 16.7%.
+- An importable Grafana dashboard defines eight PostgreSQL-backed panels. Runtime Grafana deployment is intentionally pending infrastructure decisions.
 
 ## Currently Working On
 
-Rotating the exposed AEMET token, then validating historical backfill and daily incremental repair before enabling the two AEMET schedules.
+Implementing the selected local Streamlit/Grafana Compose topology while AEMET validation remains blocked on token rotation.
 
 ## Next Steps
 
@@ -69,18 +83,17 @@ Rotating the exposed AEMET token, then validating historical backfill and daily 
 
 1. Rotate the AEMET token and update the mounted `api.pem` file.
 2. Backfill station `1012P` from 2024-01-01, validate the seven-day incremental repair window twice, and enable the two AEMET schedules.
-3. Select representative AEMET stations across coastal and inland Gipuzkoa for the historical corpus.
+3. Add Streamlit and Grafana to local Compose on ports 8501 and 3000 with separate application-writer/Grafana-reader roles and manual retention.
 
 ### Medium Priority
 
-1. Implement the ERA5-Land historical backfill and derive daily/monthly climate indicators from the automated monthly files.
-2. Validate Euskalmet current-station and sensor-reading ingestion using selected Gipuzkoa stations.
-3. Validate the AEMET warning endpoint and store normalized hazard alerts.
+1. Expand the retrieval and LLM evaluation fixtures and add independent human review.
+2. Select representative AEMET stations across coastal and inland Gipuzkoa for the historical corpus.
+3. Implement the ERA5-Land historical backfill and derive daily/monthly climate indicators from the automated monthly files.
 
 ### Low Priority
 
-1. Implement the course-style RAG application around `rag_helper.py` and `assistant.py`.
-2. Build the Streamlit interface with citations, source timestamps, and emergency notices.
-3. Add retrieval and LLM evaluation datasets.
-4. Add conversation monitoring, feedback collection, and Grafana dashboards.
-5. Complete the full Docker Compose environment and final reviewer documentation.
+1. Validate Euskalmet current-station and sensor-reading ingestion using selected Gipuzkoa stations.
+2. Validate the AEMET warning endpoint and store normalized hazard alerts.
+3. Add application and Grafana screenshots after deployment.
+4. Complete the full Docker Compose environment and final reviewer walkthrough.

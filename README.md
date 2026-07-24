@@ -23,7 +23,7 @@ Official information is distributed between weather services, government pages, 
 - Live weather and warning data from an official provider
 - Emergency disclaimer and `112` guidance
 - User feedback collection
-- Grafana monitoring dashboard
+- Importable Grafana monitoring dashboard with eight panels
 - Automated ingestion with Kestra
 
 ## Technology Stack
@@ -38,7 +38,7 @@ Official information is distributed between weather services, government pages, 
 | Monitoring | Grafana | Application and feedback dashboard |
 | Local runtime | Docker Compose | Run all services together |
 
-SQLite holds the complete normalized documents and citation metadata. Its FTS5 index provides the text-retrieval baseline. pgvector stores embeddings keyed to SQLite chunk IDs. After vector retrieval, the application loads the full text and source details from SQLite. Conversation and feedback metrics are stored in PostgreSQL for Grafana.
+SQLite holds the complete normalized documents and citation metadata. Its FTS5 index provides the text-retrieval baseline. pgvector stores embeddings keyed to SQLite chunk IDs. After vector retrieval, the application loads the full text and source details from SQLite. With explicit user consent, conversation and feedback metrics are stored in local PostgreSQL for Grafana.
 
 ## Data Sources
 
@@ -60,17 +60,17 @@ Semantic retrieval stores `text-embedding-3-small` vectors in PostgreSQL with pg
 
 Confirmed access paths, source classifications, and credential requirements are documented in [API Discovery](docs/API_DISCOVERY.md).
 
-See [Data Ingestion](docs/INGESTION.md) for source commands, SQLite tables, and the Kestra flow. The initial bilingual FTS5 baseline is recorded in [Retrieval Evaluation](docs/EVALUATION.md).
+See [Data Ingestion](docs/INGESTION.md) for source commands, SQLite tables, and Kestra flows. [RAG Application](docs/APPLICATION.md) documents routing, citations, safety, and startup. Retrieval and prompt results are recorded in [Evaluation](docs/EVALUATION.md), and the PostgreSQL/Grafana contract is in [Monitoring](docs/MONITORING.md).
 
 ## Architecture
 
 ```text
 Streamlit user interface
-  -> query routing
-     -> official weather APIs and homepage warning cards for forecasts and warnings
+  -> deterministic bilingual query routing
+     -> cached official API and homepage snapshots for forecasts and warnings
      -> SQLite FTS5 retrieval or pgvector similarity retrieval
   -> OpenAI answer generation with citations
-  -> feedback and interaction events in PostgreSQL
+  -> optional feedback and consented interaction events in PostgreSQL
   -> Grafana dashboard
 
 Kestra
@@ -88,13 +88,13 @@ This project is designed to cover the LLM Zoomcamp project requirements:
 | Criterion | Implementation |
 |---|---|
 | Problem description | This README defines the users, scope, problem, and safety boundary |
-| Retrieval flow | SQLite/pgvector knowledge base with OpenAI answer generation |
+| Retrieval flow | Course-style RAG over SQLite/pgvector with cited OpenAI answers |
 | Retrieval evaluation | Compare SQLite FTS5 retrieval with pgvector similarity retrieval |
-| LLM evaluation | Compare two OpenAI prompt designs and retain the better one |
-| Interface | Streamlit web UI |
+| LLM evaluation | Structured LLM-as-Judge comparison selects the citation/safety prompt |
+| Interface | Bilingual Streamlit UI with source cards, feedback, metrics, and `112` guidance |
 | Ingestion pipeline | Automated Kestra workflow |
-| Monitoring | User feedback plus Grafana dashboard with at least five charts |
-| Containerization | Docker Compose for all project services |
+| Monitoring | PostgreSQL events plus an importable eight-panel Grafana dashboard |
+| Containerization | PostgreSQL and Kestra in Compose; local Streamlit/Grafana services are the next deployment step |
 | Reproducibility | Version-pinned dependencies, public data, and documented setup |
 
 ## Course Code Reuse
@@ -118,23 +118,25 @@ The project will intentionally adapt the LLM Zoomcamp implementations so its str
 
 See [STATUS.md](STATUS.md) for the current state, active work, and prioritized next steps. See [PROJECT_PLAN.md](PROJECT_PLAN.md) for milestones, data design, evaluation, and expected deliverables.
 
-## Planned Setup
+## Run The Showcase
 
 The initial climate-data path uses the configured CDS credentials in `~/.cdsapirc`. Before the first retrieval, accept the ERA5-Land licence in the [Climate Data Store](https://cds.climate.copernicus.eu/datasets/reanalysis-era5-land?tab=download#manage-licences):
 
 ```bash
 uv sync --group dev
-uv run python -m app.climate_ingest \
-  --year 2024 --month 1 --days 1 \
-  --output data/raw/era5-land-smoke.nc
+docker compose up -d postgres kestra
+uv run python -m app.db_init
+uv run streamlit run app/streamlit_app.py
 ```
 
-The command downloads a bounded ERA5-Land subset for Gipuzkoa and writes a retrieval manifest next to it. Output data is intentionally ignored by Git.
+The application requires `OPENAI_API_KEY`, a local `DATABASE_URL`, and an ingested SQLite corpus. The default semantic backend is pgvector; set `RETRIEVAL_BACKEND=sqlite_fts5` to demonstrate the lexical baseline. Full environment variables and credential-path conventions are listed in `.env.example`.
 
-The project will also require an OpenAI API key and credentials for the selected weather APIs.
+ERA5-Land retrieval still requires acceptance of the [Climate Data Store licence](https://cds.climate.copernicus.eu/datasets/reanalysis-era5-land?tab=download#manage-licences). Generated data and credentials are intentionally ignored by Git.
 
 ## Limitations
 
 - Information freshness depends on source availability and scheduled ingestion.
 - The application does not replace official warning channels or emergency services.
 - Responses are limited to Gipuzkoa and should identify when a source is Basque Country- or Spain-wide rather than Gipuzkoa-specific.
+- The initial evaluation fixtures contain six questions each and are showcase baselines, not comprehensive quality guarantees.
+- Streamlit/Grafana Compose services and least-privilege database roles remain to be implemented.

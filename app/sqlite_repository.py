@@ -28,7 +28,8 @@ class SQLiteRepository:
                 """
                 SELECT c.chunk_id, c.text, d.document_id, d.title,
                        s.source_id, s.organization, s.url, s.language,
-                       s.publication_date, bm25(chunks_fts) AS score
+                       s.publication_date, s.retrieved_at, s.source_type,
+                       s.content_type, bm25(chunks_fts) AS score
                 FROM chunks_fts
                 JOIN chunks c ON c.chunk_id = chunks_fts.chunk_id
                 JOIN documents d ON d.document_id = c.document_id
