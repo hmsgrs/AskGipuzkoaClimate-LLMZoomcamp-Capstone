@@ -2,6 +2,8 @@
 
 An end-to-end RAG application that answers Spanish and English questions about weather, climate risks, and emergency preparedness in Gipuzkoa, Spain.
 
+Course reviewers should start with the dedicated [Course Evaluator Guide](COURSE_EVALUATOR.md).
+
 The application uses official public sources, cites its evidence, collects user feedback, and exposes operational metrics in Grafana. It is an informational tool, not an official emergency-alert service. In an immediate emergency, contact `112`.
 
 ## Problem
