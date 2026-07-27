@@ -57,7 +57,7 @@ Update this file whenever the project reaches a milestone or its active priority
 - Corpus/vector validation passes with 9 active documents, 161 chunks, 161 vectors, zero unchanged embeddings, a 67% FTS5 hit rate, and a 100% pgvector hit rate.
 - Supervised enabled-flow executions succeeded for Euskalmet alerts (`4Z5ULbLUMBYhL6txvmndWq`), Euskalmet forecasts (`2T6MvUlX6E7dNzVDC8gKbr`), ERA5-Land (`4AUvyN7V9Mu85BjwYDOyuy`), and corpus/vector refresh (`6SNZZsJy9ls5NL0v7AxzBH`).
 - The initial AEMET historical backfill exposed its token because Kestra still had a pre-redaction ingestion image. The execution/logs were deleted, SQLite receipts were sanitized, the corrected image was rebuilt, and current logs are clean. The token must be rotated before AEMET validation resumes.
-- The suite contains 72 tests: 70 unit tests cover the committed artifacts, reviewer runtime, and application behavior, and both PostgreSQL integration tests pass against a service database.
+- The suite contains 73 tests: 71 unit tests cover the committed artifacts, reviewer runtime, and application behavior, and both PostgreSQL integration tests pass against a service database.
 
 ### RAG application and evaluation
 

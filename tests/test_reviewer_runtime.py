@@ -37,3 +37,12 @@ def test_application_image_contains_only_committed_reviewer_snapshot():
     assert "COPY data/snapshots ./data/snapshots" in dockerfile
     assert "!data/snapshots/gipuzkoa-demo-2026-07-22/" in dockerignore
     assert "docs/api_keys/" in dockerignore
+
+
+def test_application_image_validates_streamlit_import_path_during_build():
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
+
+    assert 'PYTHONPATH="/app"' in dockerfile
+    assert "AppTest.from_file('/app/app/streamlit_app.py')" in dockerfile
+    assert "import app, urllib.request" in compose
