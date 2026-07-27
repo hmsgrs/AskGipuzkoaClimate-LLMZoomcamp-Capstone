@@ -13,8 +13,8 @@ from app.portable_embeddings import export_embeddings, validate_export
 from app.snapshot import create_snapshot, open_readonly_database
 
 
-DEMO_SNAPSHOT_ID = "gipuzkoa-demo-2026-07-22"
-DEMO_EFFECTIVE_DATE = "2026-07-22"
+DEMO_SNAPSHOT_ID = "gipuzkoa-demo-2026-07-27"
+DEMO_EFFECTIVE_DATE = "2026-07-27"
 EXPECTED_COUNTS = {
     "sources": 9,
     "documents": 9,
@@ -22,18 +22,11 @@ EXPECTED_COUNTS = {
     "evaluation_questions": 6,
     "weather_stations": 45,
     "weather_forecasts": 18,
-    "weather_api_snapshots": 1,
+    "weather_api_snapshots": 30,
     "aemet_daily_observations": 0,
-    "hazard_alerts": 0,
+    "hazard_alerts": 2,
     "ingestion_runs": 0,
 }
-EXPANDED_EXPECTED_COUNTS = {
-    **EXPECTED_COUNTS,
-    "weather_api_snapshots": 30,
-    "hazard_alerts": 2,
-}
-
-
 def _table_counts(database, expected_counts):
     connection = open_readonly_database(database)
     try:
@@ -156,7 +149,6 @@ def curate_database(
     destination: Path,
     *,
     effective_date: str = DEMO_EFFECTIVE_DATE,
-    representative_weather: bool = False,
 ):
     source_connection = open_readonly_database(source)
     target_connection = sqlite3.connect(destination)
@@ -165,45 +157,9 @@ def curate_database(
         for trigger in ("snapshot_metadata_no_update", "snapshot_metadata_no_delete"):
             target_connection.execute(f'DROP TRIGGER IF EXISTS "{trigger}"')
         target_connection.execute("DROP TABLE IF EXISTS snapshot_metadata")
-        acquisition = None
-        if representative_weather:
-            acquisition = _curate_representative_weather(
-                target_connection, effective_date
-            )
-        else:
-            rows = target_connection.execute(
-                """
-                SELECT snapshot_id, source_url, request_json
-                FROM weather_api_snapshots
-                WHERE provider = 'euskalmet-location-forecast'
-                """
-            ).fetchall()
-            if len(rows) != 1:
-                raise ValueError("Demo source must contain exactly one location forecast")
-            snapshot_id, source_url, request_json = rows[0]
-            if json.loads(request_json or "{}") == {}:
-                expected_path = (
-                    "/regions/basque_country/zones/donostialdea/locations/donostia/"
-                    "forecast/at/2026/07/21/for/20260721"
-                )
-                if expected_path not in source_url:
-                    raise ValueError("Location forecast URL does not match demo provenance")
-                target_connection.execute(
-                    "UPDATE weather_api_snapshots SET request_json = ? WHERE snapshot_id = ?",
-                    (
-                        json.dumps(
-                            {
-                                "region": "basque_country",
-                                "zone": "donostialdea",
-                                "location": "donostia",
-                                "issued_date": "2026-07-21",
-                                "target_date": "2026-07-21",
-                            },
-                            sort_keys=True,
-                        ),
-                        snapshot_id,
-                    ),
-                )
+        acquisition = _curate_representative_weather(
+            target_connection, effective_date
+        )
         target_connection.execute(
             "UPDATE ingestion_runs SET error = NULL WHERE error IS NOT NULL"
         )
@@ -212,9 +168,8 @@ def curate_database(
     finally:
         target_connection.close()
         source_connection.close()
-    expected_counts = EXPANDED_EXPECTED_COUNTS if representative_weather else EXPECTED_COUNTS
-    counts = _table_counts(destination, expected_counts)
-    if counts != expected_counts:
+    counts = _table_counts(destination, EXPECTED_COUNTS)
+    if counts != EXPECTED_COUNTS:
         raise ValueError(f"Unexpected demo coverage: {counts}")
     return counts, acquisition
 
@@ -226,7 +181,6 @@ def build_demo_snapshot(
     snapshot_id: str = DEMO_SNAPSHOT_ID,
     embedding_client=None,
     effective_date: str = DEMO_EFFECTIVE_DATE,
-    representative_weather: bool = False,
     embedding_artifact: Path | None = None,
 ):
     temporary_root = Path(tempfile.mkdtemp(prefix="askgipuzkoa-demo-"))
@@ -237,7 +191,6 @@ def build_demo_snapshot(
             Path(source),
             curated,
             effective_date=effective_date,
-            representative_weather=representative_weather,
         )
         if embedding_artifact is not None:
             shutil.copyfile(embedding_artifact, embeddings)
@@ -248,26 +201,15 @@ def build_demo_snapshot(
                 embeddings,
                 embedding_client=embedding_client,
             )
-        expected_counts = (
-            EXPANDED_EXPECTED_COUNTS if representative_weather else EXPECTED_COUNTS
-        )
         included = [
             "official knowledge corpus",
             "retrieval evaluation questions",
             "station metadata",
             "public city forecasts",
+            "three authenticated forecast days for ten representative municipalities",
+            "authenticated Gipuzkoa coast and interior warning responses",
         ]
         excluded = ["AEMET daily observations", "current conditions"]
-        if representative_weather:
-            included.extend(
-                [
-                    "three authenticated forecast days for ten representative municipalities",
-                    "authenticated Gipuzkoa coast and interior warning responses",
-                ]
-            )
-        else:
-            included.append("one authenticated Donostia forecast")
-            excluded.append("hazard alerts")
         return create_snapshot(
             curated,
             Path(output_root),
@@ -277,9 +219,9 @@ def build_demo_snapshot(
                 "Scoped historical reviewer demo. Weather and warning responses are "
                 "archived evidence and must not be interpreted as current conditions."
             ),
-            required_tables=list(expected_counts),
+            required_tables=list(EXPECTED_COUNTS),
             require_nonempty=[
-                table for table, count in expected_counts.items() if count > 0
+                table for table, count in EXPECTED_COUNTS.items() if count > 0
             ],
             effective_date=effective_date,
             coverage={
@@ -300,7 +242,6 @@ def parse_args(argv=None):
     parser.add_argument("--output-root", type=Path, default=Path("data/snapshots"))
     parser.add_argument("--snapshot-id", default=DEMO_SNAPSHOT_ID)
     parser.add_argument("--effective-date", default=DEMO_EFFECTIVE_DATE)
-    parser.add_argument("--representative-weather", action="store_true")
     parser.add_argument("--embedding-artifact", type=Path)
     return parser.parse_args(argv)
 
@@ -312,7 +253,6 @@ def main(argv=None):
         args.output_root,
         snapshot_id=args.snapshot_id,
         effective_date=args.effective_date,
-        representative_weather=args.representative_weather,
         embedding_artifact=args.embedding_artifact,
     )
     print(json.dumps(result, indent=2, sort_keys=True))

@@ -51,10 +51,9 @@ uv run python -m app.ingest euskalmet-homepage-alerts
 
 # Scheduled-operation equivalents with durable ingestion-run receipts
 uv run python -m app.ingest refresh-euskalmet-alerts \
-  --zone GIPUZKOA_COAST --as-of 2026-07-22
+  --scope gipuzkoa --as-of 2026-07-27
 uv run python -m app.ingest refresh-euskalmet-forecasts \
-  --region basque_country --zone donostialdea --location donostia \
-  --horizon-days 3 --as-of 2026-07-22
+  --scope representative --horizon-days 3 --as-of 2026-07-27
 uv run python -m app.ingest refresh-aemet-daily \
   --station 1012P --as-of 2026-07-22 --lag-days 2 \
   --lookback-days 7 --chunk-days 31 --initial-start 2024-01-01
@@ -64,7 +63,7 @@ uv run python -m app.ingest backfill-aemet-daily \
 
 All commands default to `data/processed/ingestion.sqlite`. This mutable working file is intentionally ignored by Git. Reviewers use a verified published snapshot and do not run these provider commands.
 
-Authenticated snapshot commands print a JSON receipt rather than the complete provider payload. `upserted: 1` means one API response was stored successfully; `table`, `database`, `record_id`, and `source_url` identify where it was written. Bulk refresh commands also write a durable row to `ingestion_runs` and report their requested, succeeded, and failed work units. A file lock serializes schema initialization; WAL mode and the 60-second SQLite busy timeout coordinate the short write transactions without holding a lock during network requests.
+Authenticated snapshot commands print a JSON receipt rather than the complete provider payload. The representative bulk refresh records 30 forecast work units (10 municipalities by 3 dates); the Gipuzkoa alert scope records coast and interior responses. Bulk refresh commands also write a durable row to `ingestion_runs` and report their requested, succeeded, and failed work units. A file lock serializes schema initialization; WAL mode and the 60-second SQLite busy timeout coordinate the short write transactions without holding a lock during network requests.
 
 ## Operational Data Types
 

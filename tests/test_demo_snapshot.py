@@ -4,7 +4,7 @@ import sqlite3
 from datetime import date, timedelta
 from pathlib import Path
 
-from app.demo_snapshot import EXPANDED_EXPECTED_COUNTS, curate_database
+from app.demo_snapshot import EXPECTED_COUNTS, curate_database
 from app.euskalmet_scope import GIPUZKOA_ALERT_AREAS, REPRESENTATIVE_LOCATIONS
 
 
@@ -12,7 +12,7 @@ OLD_SNAPSHOT = (
     Path(__file__).parents[1]
     / "data"
     / "snapshots"
-    / "gipuzkoa-demo-2026-07-22"
+    / "gipuzkoa-demo-2026-07-27"
     / "snapshot.sqlite"
 )
 
@@ -95,10 +95,9 @@ def test_representative_demo_curation_keeps_exact_weather_matrix(tmp_path):
         source,
         curated,
         effective_date=effective.isoformat(),
-        representative_weather=True,
     )
 
-    assert counts == EXPANDED_EXPECTED_COUNTS
+    assert counts == EXPECTED_COUNTS
     assert len(acquisition["locations"]) == 10
     assert acquisition["target_dates"] == [
         "2026-07-27",

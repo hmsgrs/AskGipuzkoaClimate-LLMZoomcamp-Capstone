@@ -38,7 +38,7 @@ The reviewer backend is pgvector. The committed `text-embedding-3-small` documen
 - Preparedness and recommendation questions select the knowledge base even if they contain the word "weather".
 - All remaining questions select the knowledge base.
 
-The weather repository never makes provider calls per question. In the default `DATA_MODE=snapshot`, it treats forecasts and warnings as historical, uses the snapshot acquisition date when interpreting "today" or "tomorrow", includes archived warnings with a stale marker, and directs users to current official channels. In an explicitly configured refresh deployment, warning queries exclude rows older than `LIVE_DATA_MAX_AGE_HOURS`. Both modes deduplicate repeated provider payloads and retain official source URLs and retrieval times.
+The weather repository never makes provider calls per question. In the default `DATA_MODE=snapshot`, it treats forecasts and warnings as historical, uses the snapshot effective date when interpreting relative dates through "day after tomorrow", filters municipality and warning-area aliases, includes archived warnings with a stale marker, and directs users to current official channels. In an explicitly configured refresh deployment, warning queries exclude rows older than `LIVE_DATA_MAX_AGE_HOURS`. Both modes retain distinct request scopes and official source URLs and retrieval times.
 
 ## Citation Contract
 

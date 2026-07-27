@@ -9,7 +9,7 @@ __pycache__/
 data/raw/
 data/processed/
 data/snapshots/*
-!data/snapshots/gipuzkoa-demo-2026-07-22/
-!data/snapshots/gipuzkoa-demo-2026-07-22/**
+!data/snapshots/gipuzkoa-demo-2026-07-27/
+!data/snapshots/gipuzkoa-demo-2026-07-27/**
 grafana-data/
 postgres-data/

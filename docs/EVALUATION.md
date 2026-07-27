@@ -12,7 +12,7 @@ The initial baseline uses the six bilingual questions in `evaluation/retrieval_q
 | English | 1 | 3 | 33% |
 | Overall | 4 | 6 | 67% |
 
-The evaluated corpus is committed in snapshot `gipuzkoa-demo-2026-07-22` with database SHA-256 `f2b02b8ae386b69b0e35375b9dae49b2f33941c8327a78ffb5ceccc750a56094`. It contains 9 active documents and 161 chunks. FTS5 retrieved all expected sources for Spanish questions. It missed the English adverse-weather recommendation and summer-climate questions because the corpus is predominantly Spanish and lexical retrieval does not translate query terms.
+The original evaluated bundle is snapshot `gipuzkoa-demo-2026-07-22` with database SHA-256 `f2b02b8ae386b69b0e35375b9dae49b2f33941c8327a78ffb5ceccc750a56094`, retained in Git history at commit `8645081`. The current reviewer snapshot `gipuzkoa-demo-2026-07-27` has database SHA-256 `24aa4860286d420aee3a6daab139f8a25de1997d13f3d9a84ea1f505557341a3` and manifest SHA-256 `e0b33a259bd60c53965be83958a830047fc9d5c5ae7394d77516edabbe9a6073`. Both contain the same 9 active documents, 161 chunks, corpus digest, and portable vector artifact; the new database digest reflects expanded weather data. FTS5 retrieved all expected sources for Spanish questions. It missed the English adverse-weather recommendation and summer-climate questions because the corpus is predominantly Spanish and lexical retrieval does not translate query terms.
 
 This is an intentionally small smoke-test dataset, not a final quality claim. The dataset must be expanded before final retrieval selection. The pgvector comparison uses the same expected source IDs.
 
@@ -62,7 +62,7 @@ The first evaluation run exposed a routing bug: the English phrase "adverse-weat
 
 Residual weakness: the summer-history answer sometimes adds a directly related July report even when the seasonal report is sufficient. The selected prompt reduces unrelated source cards, but larger fixtures and source-aware reranking remain future work.
 
-The hardened run used 53,853 tokens with an estimated generation cost of $0.0225 and judge cost of $0.0277. Compact results are committed in `evaluation/results/llm_evaluation_summary.json`; full answer-level reports can be regenerated with:
+The hardened run used 53,853 tokens with an estimated generation cost of $0.0225 and judge cost of $0.0277. Compact results remain attributed to the original evaluated snapshot in `evaluation/results/llm_evaluation_summary.json`; they are not relabelled as a rerun against the expanded weather bundle. Full answer-level reports can be regenerated with:
 
 ```bash
 uv run python -m app.llm_evaluation \

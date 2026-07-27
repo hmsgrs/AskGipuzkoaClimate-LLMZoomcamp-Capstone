@@ -91,7 +91,7 @@ Scraping is limited to allowlisted official Euskalmet and Basque Government HTML
 |---|---|---:|---|
 | `euskalmet-stations` | `weather` metadata | Monthly | Ingested successfully into SQLite |
 | `euskalmet-forecast-xml` | `weather` | Hourly | Ingested successfully into SQLite |
-| `euskalmet-api` | `weather`, `hazard_alert` | 15 minutes for alerts; hourly for forecasts/readings | Authentication, geo catalogue, Donostia forecast, and Gipuzkoa coast alerts validated |
+| `euskalmet-api` | `weather`, `hazard_alert` | 15 minutes for alerts; hourly for forecasts/readings | Three forecast days validated for 10 representative Gipuzkoa municipalities; coast and interior alerts validated |
 | `aemet-opendata` | `climate_history`, `hazard_alert` | Daily historical update; 15 minutes for alerts | Station inventory and daily-observation access validated |
 | `era5-land` | `climate_history` | Monthly | Bounded retrieval smoke test validated through CDS credentials |
 | `euskalmet-climate-reports` | `climate_history` | Monthly | Four seasonal and two monthly PDFs registered with a 10 MB limit |

@@ -24,7 +24,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      SNAPSHOT_PATH: /app/data/snapshots/gipuzkoa-demo-2026-07-22
+      SNAPSHOT_PATH: /app/data/snapshots/gipuzkoa-demo-2026-07-27
       SESSION_FIXTURE_MANIFEST: /app/evaluation/session_fixtures/manifest.json
       BOOTSTRAP_DATABASE_URL: postgresql://askgipuzkoa_owner:${POSTGRES_PASSWORD:-askgipuzkoa-owner-local}@postgres:5432/gipuzkoa_askbot
       APP_DATABASE_USER: askgipuzkoa_app
@@ -50,7 +50,7 @@ services:
       OPENAI_EMBEDDING_MODEL: text-embedding-3-small
       OPENAI_EMBEDDING_DIMENSIONS: 1536
       DATA_MODE: snapshot
-      SQLITE_DATABASE: /app/data/snapshots/gipuzkoa-demo-2026-07-22/snapshot.sqlite
+      SQLITE_DATABASE: /app/data/snapshots/gipuzkoa-demo-2026-07-27/snapshot.sqlite
       RETRIEVAL_BACKEND: pgvector
       DATABASE_URL: postgresql://askgipuzkoa_app:${APP_DATABASE_PASSWORD:-askgipuzkoa-app-local}@postgres:5432/gipuzkoa_askbot
     ports:

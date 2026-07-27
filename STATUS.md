@@ -19,7 +19,7 @@ Update this file whenever the project reaches a milestone or its active priority
 - Public Euskalmet forecast ingestion works and stores 18 bilingual city forecast rows.
 - Euskalmet RS256 JWT authentication works with the downloaded private key.
 - The documented Euskalmet region, zone, location, station, reading, and alert routes are implemented.
-- Authenticated Donostia forecast ingestion works.
+- Authenticated three-day forecast ingestion works for ten representative Gipuzkoa municipalities, with scoped coast and interior warning capture.
 - Authenticated Gipuzkoa coast alert ingestion works.
 - AEMET OpenData authentication works using the official raw-JWT API-key format.
 - AEMET station ingestion stores 16 Gipuzkoa stations.
@@ -57,14 +57,14 @@ Update this file whenever the project reaches a milestone or its active priority
 - Corpus/vector validation passes with 9 active documents, 161 chunks, 161 vectors, zero unchanged embeddings, a 67% FTS5 hit rate, and a 100% pgvector hit rate.
 - Supervised enabled-flow executions succeeded for Euskalmet alerts (`4Z5ULbLUMBYhL6txvmndWq`), Euskalmet forecasts (`2T6MvUlX6E7dNzVDC8gKbr`), ERA5-Land (`4AUvyN7V9Mu85BjwYDOyuy`), and corpus/vector refresh (`6SNZZsJy9ls5NL0v7AxzBH`).
 - The initial AEMET historical backfill exposed its token because Kestra still had a pre-redaction ingestion image. The execution/logs were deleted, SQLite receipts were sanitized, the corrected image was rebuilt, and current logs are clean. The token must be rotated before AEMET validation resumes.
-- The suite contains 77 tests: 74 unit tests cover committed artifacts, session privacy, reviewer runtime, and application behavior; three PostgreSQL integration tests cover vectors, persistence, and idempotent fixture import/export.
+- The suite contains 85 tests: 82 unit tests cover committed artifacts, weather scope, session privacy, reviewer runtime, and application behavior; three PostgreSQL integration tests cover vectors, persistence, and idempotent fixture import/export.
 
 ### RAG application and evaluation
 
 - Course-style `RAGBase`, `RAGWithMetrics`, and `create_assistant()` modules provide the end-to-end OpenAI answer path over pgvector or FTS5.
 - Deterministic Spanish/English routing separates knowledge, cached snapshot-weather, and immediate-danger requests. Emergency requests bypass the LLM and direct users to `112`.
 - Application-assigned `[S#]` labels constrain prompts and source cards; missing, unknown, or URL-bearing citations fail closed instead of being displayed as grounded output.
-- The cached weather repository prefers authenticated location forecasts, selects local today/tomorrow dates, excludes stale warnings, deduplicates warning payloads, and retains official URLs and retrieval timestamps.
+- The cached weather repository prefers authenticated location forecasts, isolates municipality/date sources, supports bilingual aliases and three relative forecast days, filters coast/interior warnings, and retains official URLs and retrieval timestamps.
 - The Streamlit showcase includes bilingual examples, escaped source metadata, route/model metrics, optional consented PostgreSQL storage, feedback comments, optional LLM-as-Judge, and a persistent emergency notice. Its real health endpoint returns HTTP 200.
 - With explicit user consent, PostgreSQL stores conversations, citation-contract status, token usage, latency, estimated cost, user feedback, and judge relevance through idempotent schema initialization.
 - OpenAI answer and structured-judge calls disable provider response storage with `store=False` and reject incomplete, refused, or empty responses.
@@ -81,8 +81,8 @@ Update this file whenever the project reaches a milestone or its active priority
 - Retrieval opens SQLite read-only and uses deterministic FTS ordering.
 - Snapshot weather interprets relative dates from the acquisition window and always marks archived warning evidence stale.
 - Provider ingestion remains available manually; all recurring Kestra triggers were removed, and `create_data_snapshot` is an optional manually triggered publication flow.
-- The repository commits scoped demo snapshot `gipuzkoa-demo-2026-07-22`, its manifest/checksum, and 161 corpus-bound portable vectors. A fresh Compose volume imports all vectors without an embedding API call.
-- The demo includes 9 documents, 161 chunks, 6 evaluation questions, 45 stations, 18 public forecasts, and one authenticated forecast. AEMET observations, hazard alerts, and current conditions are explicitly excluded.
+- The repository commits scoped demo snapshot `gipuzkoa-demo-2026-07-27`, its manifest/checksum, and 161 corpus-bound portable vectors. A fresh Compose volume imports all vectors without an embedding API call.
+- The demo includes 9 documents, 161 chunks, 6 evaluation questions, 45 stations, 18 public forecasts, 30 authenticated forecasts for 10 municipalities, and 2 authenticated warning responses. AEMET observations and current conditions are explicitly excluded.
 - The existing ignored development database and scoped demo are not a canonical all-source release because AEMET history and hazard coverage are incomplete.
 
 ## Currently Working On

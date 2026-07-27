@@ -18,7 +18,7 @@ COPY data/snapshots ./data/snapshots
 COPY evaluation/session_fixtures ./evaluation/session_fixtures
 
 RUN DATA_MODE=snapshot \
-    SQLITE_DATABASE=/app/data/snapshots/gipuzkoa-demo-2026-07-22/snapshot.sqlite \
+    SQLITE_DATABASE=/app/data/snapshots/gipuzkoa-demo-2026-07-27/snapshot.sqlite \
     RETRIEVAL_BACKEND=sqlite_fts5 \
     OPENAI_API_KEY=build-smoke-test \
     python -c "from streamlit.testing.v1 import AppTest; app = AppTest.from_file('/app/app/streamlit_app.py'); app.run(timeout=20); assert not app.exception, app.exception"

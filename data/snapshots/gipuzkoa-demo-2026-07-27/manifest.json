@@ -1,0 +1,147 @@
+{
+  "acquisition_window": {
+    "completed_at": "2026-07-27T11:22:12.970858+00:00",
+    "started_at": "2026-07-21T10:56:10.182431+00:00"
+  },
+  "artifacts": [
+    {
+      "bytes": 1347584,
+      "media_type": "application/octet-stream",
+      "name": "embeddings.sqlite",
+      "path": "artifacts/0f056e021197a672e5ccabdc1bcae8726704a51743e01d280021caeb4d3d38f2-embeddings.sqlite",
+      "sha256": "0f056e021197a672e5ccabdc1bcae8726704a51743e01d280021caeb4d3d38f2"
+    }
+  ],
+  "coverage": {
+    "euskalmet_acquisition": {
+      "alert_zones": [
+        "GIPUZKOA_COAST",
+        "GIPUZKOA_INTERIOR"
+      ],
+      "issued_date": "2026-07-27",
+      "locations": [
+        {
+          "display_name": "Donostia / San Sebastian",
+          "location": "donostia",
+          "region": "basque_country",
+          "zone": "donostialdea"
+        },
+        {
+          "display_name": "Irun",
+          "location": "irun",
+          "region": "basque_country",
+          "zone": "coast_zone"
+        },
+        {
+          "display_name": "Hondarribia",
+          "location": "hondarribia",
+          "region": "basque_country",
+          "zone": "coast_zone"
+        },
+        {
+          "display_name": "Hernani",
+          "location": "hernani",
+          "region": "basque_country",
+          "zone": "cantabrian_valleys"
+        },
+        {
+          "display_name": "Lasarte-Oria",
+          "location": "lasarte",
+          "region": "basque_country",
+          "zone": "cantabrian_valleys"
+        },
+        {
+          "display_name": "Zarautz",
+          "location": "zarautz",
+          "region": "basque_country",
+          "zone": "coast_zone"
+        },
+        {
+          "display_name": "Tolosa",
+          "location": "tolosa",
+          "region": "basque_country",
+          "zone": "cantabrian_valleys"
+        },
+        {
+          "display_name": "Eibar",
+          "location": "eibar",
+          "region": "basque_country",
+          "zone": "cantabrian_valleys"
+        },
+        {
+          "display_name": "Arrasate / Mondragon",
+          "location": "arrasate",
+          "region": "basque_country",
+          "zone": "cantabrian_valleys"
+        },
+        {
+          "display_name": "Beasain",
+          "location": "beasain",
+          "region": "basque_country",
+          "zone": "cantabrian_valleys"
+        }
+      ],
+      "target_dates": [
+        "2026-07-27",
+        "2026-07-28",
+        "2026-07-29"
+      ]
+    },
+    "excluded": [
+      "AEMET daily observations",
+      "current conditions"
+    ],
+    "included": [
+      "official knowledge corpus",
+      "retrieval evaluation questions",
+      "station metadata",
+      "public city forecasts",
+      "three authenticated forecast days for ten representative municipalities",
+      "authenticated Gipuzkoa coast and interior warning responses"
+    ],
+    "scope": "historical_reviewer_demo",
+    "table_counts": {
+      "aemet_daily_observations": 0,
+      "chunks": 161,
+      "documents": 9,
+      "evaluation_questions": 6,
+      "hazard_alerts": 2,
+      "ingestion_runs": 0,
+      "sources": 9,
+      "weather_api_snapshots": 30,
+      "weather_forecasts": 18,
+      "weather_stations": 45
+    }
+  },
+  "created_at": "2026-07-27T11:23:06.736474+00:00",
+  "database": {
+    "bytes": 1167360,
+    "integrity_check": "ok",
+    "path": "snapshot.sqlite",
+    "sha256": "24aa4860286d420aee3a6daab139f8a25de1997d13f3d9a84ea1f505557341a3",
+    "table_counts": {
+      "aemet_daily_observations": 0,
+      "chunks": 161,
+      "documents": 9,
+      "evaluation_questions": 6,
+      "hazard_alerts": 2,
+      "ingestion_runs": 0,
+      "snapshot_metadata": 1,
+      "sources": 9,
+      "weather_api_snapshots": 30,
+      "weather_forecasts": 18,
+      "weather_stations": 45
+    }
+  },
+  "effective_date": "2026-07-27",
+  "notes": "Scoped historical reviewer demo. Weather and warning responses are archived evidence and must not be interpreted as current conditions.",
+  "producer": {
+    "project": "gipuzkoa-weather-climate-askbot",
+    "python": "3.12.13",
+    "source_dirty": false,
+    "source_revision": "46f8ef8fdaed64425f378fbd9d134e658ea7b0af"
+  },
+  "schema_version": 1,
+  "snapshot_id": "gipuzkoa-demo-2026-07-27",
+  "source_database": "curated.sqlite"
+}

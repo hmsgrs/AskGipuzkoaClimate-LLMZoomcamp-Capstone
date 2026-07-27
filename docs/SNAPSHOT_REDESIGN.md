@@ -13,7 +13,7 @@ evaluation, Streamlit, feedback, and monitoring code remain useful.
 
 ## Implementation Status
 
-The repository now commits scoped snapshot `gipuzkoa-demo-2026-07-22` and a portable
+The repository now commits scoped snapshot `gipuzkoa-demo-2026-07-27` and a portable
 `text-embedding-3-small` export bound to all 161 chunk hashes. The default Compose
 runtime verifies both artifacts, imports vectors into a fresh pgvector volume,
 provisions Streamlit and Grafana, and requires only an OpenAI key for new queries and
@@ -293,8 +293,8 @@ A snapshot is publishable only when:
 ## Known Current Blockers
 
 The existing local SQLite database is useful for development but is not a canonical
-release: it contains schema drift, mixed acquisition times, no AEMET observations,
-and no hazard-alert rows. The exposed AEMET token must be rotated before the first
+release: it contains schema drift, mixed acquisition times, and no AEMET observations
+or bounded ERA5 artifact. The exposed AEMET token must be rotated before the first
 complete all-source snapshot is captured. A canonical release therefore cannot be
 claimed solely from the existing ignored files.
 

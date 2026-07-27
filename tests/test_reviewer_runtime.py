@@ -36,7 +36,7 @@ def test_application_image_contains_only_committed_reviewer_snapshot():
 
     assert "COPY data/snapshots ./data/snapshots" in dockerfile
     assert "COPY evaluation/session_fixtures ./evaluation/session_fixtures" in dockerfile
-    assert "!data/snapshots/gipuzkoa-demo-2026-07-22/" in dockerignore
+    assert "!data/snapshots/gipuzkoa-demo-2026-07-27/" in dockerignore
     assert "docs/api_keys/" in dockerignore
 
 

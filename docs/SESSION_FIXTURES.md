@@ -8,6 +8,8 @@ The reviewer runtime separates three monitoring-record origins:
 
 The committed files are in `evaluation/session_fixtures/`. `manifest.json` records each fixture's SHA-256 digest, origin, conversation count, and feedback count. `runtime-init` rejects a checksum, schema, count, privacy, or origin mismatch before Streamlit starts.
 
+The committed fixture sets retain their original `gipuzkoa-demo-2026-07-22` provenance because their prompts and citations were produced from that historical snapshot. The current reviewer runtime uses `gipuzkoa-demo-2026-07-27`; fixture origin labels make clear that seeded monitoring records are not new answers from the current bundle. The original snapshot bytes remain available in Git history at commit `8645081`.
+
 ## Fresh Clone Behavior
 
 A fresh PostgreSQL volume imports six conversations and nine feedback records. Repeated initialization updates the same stable fixture IDs and never creates duplicates. If a published test session still exists as a matching local live row, initialization promotes that row in place instead of inserting a copy.
@@ -26,7 +28,7 @@ OPENAI_API_KEY=dummy docker compose exec streamlit /bin/sh -c \
     --conversation-id ID_TWO \
     --output /tmp/published_test_sessions.json \
     --source-commit SOURCE_COMMIT \
-    --snapshot-id gipuzkoa-demo-2026-07-22'
+    --snapshot-id gipuzkoa-demo-2026-07-27'
 
 docker cp \
   "$(OPENAI_API_KEY=dummy docker compose ps -q streamlit):/tmp/published_test_sessions.json" \

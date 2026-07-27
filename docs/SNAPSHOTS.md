@@ -1,15 +1,16 @@
 # Data Snapshots
 
 The application is snapshot-first. The repository includes the scoped historical
-snapshot `gipuzkoa-demo-2026-07-22` for auditing, retrieval evaluation, and the
+snapshot `gipuzkoa-demo-2026-07-27` for auditing, retrieval evaluation, and the
 Streamlit application. Provider ingestion is an optional maintainer operation.
 
 The demo manifest digest is
-`c4540fce24fe6b7c31d7d9e272f2218df12b529a817a3b487f590619b6d97fd7`.
+`e0b33a259bd60c53965be83958a830047fc9d5c5ae7394d77516edabbe9a6073`.
 It contains 9 official documents, 161 chunks, 6 retrieval questions, 45 station
-records, 18 public forecasts, one authenticated forecast, and 161 portable vectors.
-It explicitly excludes AEMET daily observations, hazard alerts, and current
-conditions; it is not the future canonical all-source release.
+records, 18 public forecasts, 30 authenticated forecasts for 10 representative
+municipalities, 2 authenticated warning responses, and 161 portable vectors. It
+explicitly excludes AEMET daily observations and current conditions; it is not the
+future canonical all-source release.
 
 The complete design and migration rationale are in
 [Snapshot-First Redesign](SNAPSHOT_REDESIGN.md).
@@ -21,28 +22,28 @@ Verify the snapshot included in a clone:
 ```bash
 uv sync --group dev
 uv run python -m app.snapshot verify \
-  --snapshot data/snapshots/gipuzkoa-demo-2026-07-22
+  --snapshot data/snapshots/gipuzkoa-demo-2026-07-27
 ```
 
 Inspect its acquisition window, table counts, source revision, and artifacts:
 
 ```bash
 uv run python -m app.snapshot inspect \
-  --snapshot data/snapshots/gipuzkoa-demo-2026-07-22
+  --snapshot data/snapshots/gipuzkoa-demo-2026-07-27
 ```
 
 Run lexical retrieval directly against the immutable database:
 
 ```bash
 DATA_MODE=snapshot \
-SQLITE_DATABASE=data/snapshots/gipuzkoa-demo-2026-07-22/snapshot.sqlite \
+SQLITE_DATABASE=data/snapshots/gipuzkoa-demo-2026-07-27/snapshot.sqlite \
 RETRIEVAL_BACKEND=sqlite_fts5 \
 uv run streamlit run app/streamlit_app.py
 ```
 
 The snapshot database is opened read-only. Weather and warning results are historical
-and use the snapshot acquisition date when interpreting relative terms such as
-"today" and "tomorrow".
+and use the snapshot effective date when interpreting relative terms such as
+"today", "tomorrow", and "day after tomorrow".
 
 The primary semantic reviewer path is simpler:
 
@@ -61,7 +62,7 @@ verified disposable copy without contacting providers:
 
 ```bash
 uv run python -m app.snapshot install \
-  --snapshot data/snapshots/gipuzkoa-demo-2026-07-22 \
+  --snapshot data/snapshots/gipuzkoa-demo-2026-07-27 \
   --database data/processed/ingestion.sqlite
 ```
 

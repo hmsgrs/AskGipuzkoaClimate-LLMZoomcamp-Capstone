@@ -126,7 +126,7 @@ OPENAI_API_KEY=your-key docker compose up --build --wait
 
 Open Streamlit at [http://127.0.0.1:8501](http://127.0.0.1:8501) and Grafana at [http://127.0.0.1:3000](http://127.0.0.1:3000). The local-only Grafana demo login is `admin` / `askgipuzkoa`; override it through `.env` when needed.
 
-The one-shot initializer verifies snapshot `gipuzkoa-demo-2026-07-22`, checks every artifact digest, creates least-privilege database roles, imports 161 committed vectors, and seeds six auditable sessions. Four sessions are synthetic demonstrations and two are published real test sessions with full prompts and feedback. Grafana labels each record origin explicitly. AEMET, Euskalmet, CDS, Kestra, PostgreSQL, and Grafana configuration are not reviewer prerequisites.
+The one-shot initializer verifies snapshot `gipuzkoa-demo-2026-07-27`, checks every artifact digest, creates least-privilege database roles, imports 161 committed vectors, and seeds six auditable sessions. The snapshot contains three forecast days for ten representative Gipuzkoa municipalities plus coast and interior warning responses. Four sessions are synthetic demonstrations and two are published real test sessions with full prompts and feedback. Grafana labels each record origin explicitly. AEMET, Euskalmet, CDS, Kestra, PostgreSQL, and Grafana configuration are not reviewer prerequisites.
 
 New consented sessions persist in the named PostgreSQL volume across builds and normal restarts, but they are not part of another clone until explicitly exported, reviewed, and committed. Stop the stack with `docker compose down`; `docker compose down --volumes` discards local live sessions and recreates only the six committed fixtures on the next startup. See [Session Fixtures](docs/SESSION_FIXTURES.md) for the publication workflow.
 
@@ -135,7 +135,7 @@ Creating a new all-source snapshot is an optional maintainer path that requires 
 ## Limitations
 
 - Weather and warnings in the default snapshot are historical and must not be treated as current conditions.
-- The reviewer snapshot intentionally excludes AEMET daily observations, hazard alerts, and current conditions.
+- The reviewer snapshot intentionally excludes AEMET daily observations and current conditions. Its Euskalmet forecasts and warning responses are archived evidence, not live status.
 - The application does not replace official warning channels or emergency services.
 - Responses are limited to Gipuzkoa and should identify when a source is Basque Country- or Spain-wide rather than Gipuzkoa-specific.
 - The initial evaluation fixtures contain six questions each and are showcase baselines, not comprehensive quality guarantees.
