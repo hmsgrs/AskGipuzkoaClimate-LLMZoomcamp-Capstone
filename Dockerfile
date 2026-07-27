@@ -15,6 +15,7 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY app ./app
 COPY .streamlit ./.streamlit
 COPY data/snapshots ./data/snapshots
+COPY evaluation/session_fixtures ./evaluation/session_fixtures
 
 RUN DATA_MODE=snapshot \
     SQLITE_DATABASE=/app/data/snapshots/gipuzkoa-demo-2026-07-22/snapshot.sqlite \

@@ -190,6 +190,7 @@ def test_grafana_dashboard_contains_required_showcase_panels():
         "Answer latency",
         "User feedback",
         "Token usage",
+        "Session record origin",
     } <= titles
     assert dashboard["templating"]["list"] == []
     assert all(

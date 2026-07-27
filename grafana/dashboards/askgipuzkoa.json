@@ -339,6 +339,47 @@
       ],
       "title": "Estimated generation cost",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "askgipuzkoa-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "id": 9,
+      "options": {
+        "displayLabels": ["name", "value", "percent"],
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": true
+        }
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT record_origin AS metric, COUNT(*) AS value FROM conversations WHERE $__timeFilter(timestamp) GROUP BY record_origin ORDER BY record_origin",
+          "refId": "A"
+        }
+      ],
+      "title": "Session record origin",
+      "type": "piechart"
     }
   ],
   "refresh": "30s",
@@ -346,7 +387,7 @@
   "tags": ["llm-zoomcamp", "gipuzkoa", "rag"],
   "templating": {"list": []},
   "time": {
-    "from": "now-6h",
+    "from": "2026-07-20T00:00:00.000Z",
     "to": "now"
   },
   "timepicker": {},

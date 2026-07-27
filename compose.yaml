@@ -25,6 +25,7 @@ services:
         condition: service_healthy
     environment:
       SNAPSHOT_PATH: /app/data/snapshots/gipuzkoa-demo-2026-07-22
+      SESSION_FIXTURE_MANIFEST: /app/evaluation/session_fixtures/manifest.json
       BOOTSTRAP_DATABASE_URL: postgresql://askgipuzkoa_owner:${POSTGRES_PASSWORD:-askgipuzkoa-owner-local}@postgres:5432/gipuzkoa_askbot
       APP_DATABASE_USER: askgipuzkoa_app
       APP_DATABASE_PASSWORD: ${APP_DATABASE_PASSWORD:-askgipuzkoa-app-local}

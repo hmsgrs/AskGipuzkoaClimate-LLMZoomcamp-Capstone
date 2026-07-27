@@ -1,0 +1,107 @@
+{
+  "conversations": [
+    {
+      "answer": "Mañana en Donostia se espera ambiente veraniego, con máxima de unos 26 °C y mínima de 20 °C [S1]. También podría haber algo de bochorno, nubes altas y algo de calima, con viento suave y variable por la mañana y del norte por la tarde, algo racheado [S1].\n\nNota: este pronóstico está marcado como **STALE** en la fuente, así que conviene verificar la actualización más reciente en Euskalmet antes de hacer planes [S1].",
+      "citations": [
+        {
+          "citation_id": "S1",
+          "language": "es",
+          "organization": "Euskalmet",
+          "publication_date": "2026-07-23",
+          "retrieved_at": "2026-07-21T10:56:10.449780+00:00",
+          "source_id": "euskalmet-forecast",
+          "source_type": "snapshot_weather_forecast",
+          "stale": true,
+          "title": "Forecast for Donostia-San Sebastián",
+          "url": "https://opendata.euskadi.eus/contenidos/prevision_tiempo/met_forecast/opendata/met_forecast.xml"
+        }
+      ],
+      "completion_tokens": 114,
+      "cost": 0.00158625,
+      "feedback": [
+        {
+          "comment": null,
+          "explanation": "La respuesta sí aborda directamente la pregunta sobre el tiempo de mañana en Donostia, ofreciendo un pronóstico concreto de temperatura, nubosidad, viento y una advertencia de actualización.",
+          "relevance": "RELEVANT",
+          "score": null,
+          "source": "judge",
+          "source_feedback_id": 1,
+          "timestamp": "2026-07-27T10:04:40.113437+00:00"
+        },
+        {
+          "comment": "",
+          "explanation": null,
+          "relevance": null,
+          "score": 1,
+          "source": "user",
+          "source_feedback_id": 2,
+          "timestamp": "2026-07-27T10:04:42.634238+00:00"
+        }
+      ],
+      "fixture_id": "published-test-b23cf65386152d78",
+      "instructions": "You answer questions about weather, climate risks, and emergency preparedness in\nGipuzkoa using only the supplied official context.\n\nAnswer in the same language as the question (Spanish or English). Cite factual\nclaims with the provided source labels such as [S1]. Never invent a source or\nclaim that is absent from the context. If the context is insufficient, say so\nclearly and direct the user to the linked official sources. Distinguish current\nweather from long-term climate information and call out stale live data. Use the\nsmallest set of directly relevant sources; do not introduce adjacent dates,\nlocations, or reports unless they are necessary to answer the question. Do not\nwrite URLs in the answer; the application renders trusted source links separately.\nWarning context contains cached snapshots, so never claim a warning is active\nunless its evidence explicitly establishes current validity.\n\nThis is an informational service, not an official warning channel. For immediate\ndanger, tell the user to call 112 and follow official emergency instructions.",
+      "language": "es",
+      "model": "gpt-5.4-mini",
+      "prompt": "QUESTION (es):\n¿Qué tiempo hará mañana en Donostia?\n\nROUTE: live_weather\n\nOFFICIAL CONTEXT:\n[S1] Forecast for Donostia-San Sebastián\nOrganization: Euskalmet\nURL: https://opendata.euskadi.eus/contenidos/prevision_tiempo/met_forecast/opendata/met_forecast.xml\nPublication date: 2026-07-23\nRetrieved at: 2026-07-21T10:56:10.449780+00:00\nFreshness: STALE\nEvidence: Forecast for Donostia-San Sebastián on 23/07/2026: El jueves seguiremos con ambiente veraniego. Las temperaturas máximas estarán, en general, por encima de los 30 ºC. En la costa serán un poco más bajas. Las temperaturas más altas se van a registrar en el valle del Ebro. Se espera algo de bochorno, debido a las temperaturas, a las nubes altas y a algo de calima que nos irá llegando. El viento a primeras horas será suave y variable, y por la tarde se levantará del norte. El viento del norte será un poco racheado.. Minimum temperature 20.0 C; maximum temperature 26.0 C.\n\n[S1] Forecast for Donostia-San Sebastián\nOrganization: Euskalmet\nURL: https://opendata.euskadi.eus/contenidos/prevision_tiempo/met_forecast/opendata/met_forecast.xml\nPublication date: 2026-07-23\nRetrieved at: 2026-07-21T10:56:10.449780+00:00\nFreshness: STALE\nEvidence: Forecast for Bilbao on 23/07/2026: El jueves seguiremos con ambiente veraniego. Las temperaturas máximas estarán, en general, por encima de los 30 ºC. En la costa serán un poco más bajas. Las temperaturas más altas se van a registrar en el valle del Ebro. Se espera algo de bochorno, debido a las temperaturas, a las nubes altas y a algo de calima que nos irá llegando. El viento a primeras horas será suave y variable, y por la tarde se levantará del norte. El viento del norte será un poco racheado.. Minimum temperature 16.0 C; maximum temperature 31.0 C.\n\n[S1] Forecast for Donostia-San Sebastián\nOrganization: Euskalmet\nURL: https://opendata.euskadi.eus/contenidos/prevision_tiempo/met_forecast/opendata/met_forecast.xml\nPublication date: 2026-07-23\nRetrieved at: 2026-07-21T10:56:10.449780+00:00\nFreshness: STALE\nEvidence: Forecast for Vitoria-Gasteiz on 23/07/2026: El jueves seguiremos con ambiente veraniego. Las temperaturas máximas estarán, en general, por encima de los 30 ºC. En la costa serán un poco más bajas. Las temperaturas más altas se van a registrar en el valle del Ebro. Se espera algo de bochorno, debido a las temperaturas, a las nubes altas y a algo de calima que nos irá llegando. El viento a primeras horas será suave y variable, y por la tarde se levantará del norte. El viento del norte será un poco racheado.. Minimum temperature 16.0 C; maximum temperature 32.0 C.\n\n[S1] Forecast for Donostia-San Sebastián\nOrganization: Euskalmet\nURL: https://opendata.euskadi.eus/contenidos/prevision_tiempo/met_forecast/opendata/met_forecast.xml\nPublication date: 2026-07-23\nRetrieved at: 2026-07-21T10:56:10.449780+00:00\nFreshness: STALE\nEvidence: Forecast for Pamplona on 23/07/2026: El jueves seguiremos con ambiente veraniego. Las temperaturas máximas estarán, en general, por encima de los 30 ºC. En la costa serán un poco más bajas. Las temperaturas más altas se van a registrar en el valle del Ebro. Se espera algo de bochorno, debido a las temperaturas, a las nubes altas y a algo de calima que nos irá llegando. El viento a primeras horas será suave y variable, y por la tarde se levantará del norte. El viento del norte será un poco racheado.. Minimum temperature 18.0 C; maximum temperature 34.0 C.\n\n[S1] Forecast for Donostia-San Sebastián\nOrganization: Euskalmet\nURL: https://opendata.euskadi.eus/contenidos/prevision_tiempo/met_forecast/opendata/met_forecast.xml\nPublication date: 2026-07-23\nRetrieved at: 2026-07-21T10:56:10.449780+00:00\nFreshness: STALE\nEvidence: Forecast for Mondragón on 23/07/2026: El jueves seguiremos con ambiente veraniego. Las temperaturas máximas estarán, en general, por encima de los 30 ºC. En la costa serán un poco más bajas. Las temperaturas más altas se van a registrar en el valle del Ebro. Se espera algo de bochorno, debido a las temperaturas, a las nubes altas y a algo de calima que nos irá llegando. El viento a primeras horas será suave y variable, y por la tarde se levantará del norte. El viento del norte será un poco racheado.. Minimum temperature 17.0 C; maximum temperature 32.0 C.\n\nWrite a concise, grounded answer. Use [S#] citations that correspond exactly to\nthe labels in the context.",
+      "prompt_tokens": 1431,
+      "question": "¿Qué tiempo hará mañana en Donostia?",
+      "response_time": 1.9936757919999764,
+      "retrieval_backend": "cached_official_weather",
+      "route": "live_weather",
+      "source_conversation_id": 1,
+      "status": "success",
+      "timestamp": "2026-07-27T10:04:24.950661+00:00",
+      "total_tokens": 1545
+    },
+    {
+      "answer": "No puedo decir con fiabilidad **qué tiempo hizo ayer en Donostia** porque el contexto disponible es un **parte de previsión** y además está **marcado como desactualizado (STALE)**, no un registro observado del día de ayer [S1].\n\nSobre **alertas**, en este contexto **no aparece ninguna alerta activa ni aviso oficial de Euskalmet**; solo hay previsión meteorológica [S1]. Como la evidencia es una captura en caché, no debo afirmar que hubiera una alerta activa sin un aviso explícito vigente.\n\nSi quieres comprobarlo en fuentes oficiales, revisa los apartados de **observación/tiempo real** y **avisos** de Euskalmet.",
+      "citations": [
+        {
+          "citation_id": "S1",
+          "language": "es",
+          "organization": "Euskalmet",
+          "publication_date": "2026-07-22",
+          "retrieved_at": "2026-07-21T10:56:10.449780+00:00",
+          "source_id": "euskalmet-forecast",
+          "source_type": "snapshot_weather_forecast",
+          "stale": true,
+          "title": "Forecast for Donostia-San Sebastián",
+          "url": "https://opendata.euskadi.eus/contenidos/prevision_tiempo/met_forecast/opendata/met_forecast.xml"
+        }
+      ],
+      "completion_tokens": 147,
+      "cost": 0.00175275,
+      "feedback": [
+        {
+          "comment": "",
+          "explanation": null,
+          "relevance": null,
+          "score": -1,
+          "source": "user",
+          "source_feedback_id": 3,
+          "timestamp": "2026-07-27T10:17:43.097626+00:00"
+        }
+      ],
+      "fixture_id": "published-test-074a0e7f5e97e220",
+      "instructions": "You answer questions about weather, climate risks, and emergency preparedness in\nGipuzkoa using only the supplied official context.\n\nAnswer in the same language as the question (Spanish or English). Cite factual\nclaims with the provided source labels such as [S1]. Never invent a source or\nclaim that is absent from the context. If the context is insufficient, say so\nclearly and direct the user to the linked official sources. Distinguish current\nweather from long-term climate information and call out stale live data. Use the\nsmallest set of directly relevant sources; do not introduce adjacent dates,\nlocations, or reports unless they are necessary to answer the question. Do not\nwrite URLs in the answer; the application renders trusted source links separately.\nWarning context contains cached snapshots, so never claim a warning is active\nunless its evidence explicitly establishes current validity.\n\nThis is an informational service, not an official warning channel. For immediate\ndanger, tell the user to call 112 and follow official emergency instructions.",
+      "language": "es",
+      "model": "gpt-5.4-mini",
+      "prompt": "QUESTION (es):\nqué tiempo hizo ayer en donostia. Hubo alguna alerta?\n\nROUTE: live_weather\n\nOFFICIAL CONTEXT:\n[S1] Forecast for Donostia-San Sebastián\nOrganization: Euskalmet\nURL: https://opendata.euskadi.eus/contenidos/prevision_tiempo/met_forecast/opendata/met_forecast.xml\nPublication date: 2026-07-22\nRetrieved at: 2026-07-21T10:56:10.449780+00:00\nFreshness: STALE\nEvidence: Forecast for Donostia-San Sebastián on 22/07/2026: El miércoles continuará el ambiente plenamente veraniego y las temperaturas volverán a subir. Las máximas alcanzarán valores de entre 30 y 35 ºC en el interior, mientras que en el litoral serán algunos grados más bajas. Predominará el ambiente soleado, con algunas nubes medias y altas durante la primera mitad del día, y también podríamos tener algo de calima. El viento se fijará del norte por la tarde y ganará intensidad, contribuyendo a suavizar ligeramente el ambiente cerca de la costa. En el interior hará bochorno.. Minimum temperature 19.0 C; maximum temperature 28.0 C.\n\n[S1] Forecast for Donostia-San Sebastián\nOrganization: Euskalmet\nURL: https://opendata.euskadi.eus/contenidos/prevision_tiempo/met_forecast/opendata/met_forecast.xml\nPublication date: 2026-07-22\nRetrieved at: 2026-07-21T10:56:10.449780+00:00\nFreshness: STALE\nEvidence: Forecast for Donostia-San Sebastián on 23/07/2026: El jueves seguiremos con ambiente veraniego. Las temperaturas máximas estarán, en general, por encima de los 30 ºC. En la costa serán un poco más bajas. Las temperaturas más altas se van a registrar en el valle del Ebro. Se espera algo de bochorno, debido a las temperaturas, a las nubes altas y a algo de calima que nos irá llegando. El viento a primeras horas será suave y variable, y por la tarde se levantará del norte. El viento del norte será un poco racheado.. Minimum temperature 20.0 C; maximum temperature 26.0 C.\n\n[S1] Forecast for Donostia-San Sebastián\nOrganization: Euskalmet\nURL: https://opendata.euskadi.eus/contenidos/prevision_tiempo/met_forecast/opendata/met_forecast.xml\nPublication date: 2026-07-22\nRetrieved at: 2026-07-21T10:56:10.449780+00:00\nFreshness: STALE\nEvidence: Forecast for Bilbao on 22/07/2026: El miércoles continuará el ambiente plenamente veraniego y las temperaturas volverán a subir. Las máximas alcanzarán valores de entre 30 y 35 ºC en el interior, mientras que en el litoral serán algunos grados más bajas. Predominará el ambiente soleado, con algunas nubes medias y altas durante la primera mitad del día, y también podríamos tener algo de calima. El viento se fijará del norte por la tarde y ganará intensidad, contribuyendo a suavizar ligeramente el ambiente cerca de la costa. En el interior hará bochorno.. Minimum temperature 20.0 C; maximum temperature 31.0 C.\n\n[S1] Forecast for Donostia-San Sebastián\nOrganization: Euskalmet\nURL: https://opendata.euskadi.eus/contenidos/prevision_tiempo/met_forecast/opendata/met_forecast.xml\nPublication date: 2026-07-22\nRetrieved at: 2026-07-21T10:56:10.449780+00:00\nFreshness: STALE\nEvidence: Forecast for Vitoria-Gasteiz on 22/07/2026: El miércoles continuará el ambiente plenamente veraniego y las temperaturas volverán a subir. Las máximas alcanzarán valores de entre 30 y 35 ºC en el interior, mientras que en el litoral serán algunos grados más bajas. Predominará el ambiente soleado, con algunas nubes medias y altas durante la primera mitad del día, y también podríamos tener algo de calima. El viento se fijará del norte por la tarde y ganará intensidad, contribuyendo a suavizar ligeramente el ambiente cerca de la costa. En el interior hará bochorno.. Minimum temperature 13.0 C; maximum temperature 33.0 C.\n\n[S1] Forecast for Donostia-San Sebastián\nOrganization: Euskalmet\nURL: https://opendata.euskadi.eus/contenidos/prevision_tiempo/met_forecast/opendata/met_forecast.xml\nPublication date: 2026-07-22\nRetrieved at: 2026-07-21T10:56:10.449780+00:00\nFreshness: STALE\nEvidence: Forecast for Pamplona on 22/07/2026: El miércoles continuará el ambiente plenamente veraniego y las temperaturas volverán a subir. Las máximas alcanzarán valores de entre 30 y 35 ºC en el interior, mientras que en el litoral serán algunos grados más bajas. Predominará el ambiente soleado, con algunas nubes medias y altas durante la primera mitad del día, y también podríamos tener algo de calima. El viento se fijará del norte por la tarde y ganará intensidad, contribuyendo a suavizar ligeramente el ambiente cerca de la costa. En el interior hará bochorno.. Minimum temperature 16.0 C; maximum temperature 35.0 C.\n\nWrite a concise, grounded answer. Use [S#] citations that correspond exactly to\nthe labels in the context.",
+      "prompt_tokens": 1455,
+      "question": "qué tiempo hizo ayer en donostia. Hubo alguna alerta?",
+      "response_time": 3.126001876999908,
+      "retrieval_backend": "cached_official_weather",
+      "route": "live_weather",
+      "source_conversation_id": 2,
+      "status": "success",
+      "timestamp": "2026-07-27T10:17:24.836467+00:00",
+      "total_tokens": 1602
+    }
+  ],
+  "exported_at": "2026-07-27T10:42:13.666127+00:00",
+  "fixture_set": "selected_real_test_sessions",
+  "record_origin": "published_test",
+  "schema_version": 1,
+  "snapshot_id": "gipuzkoa-demo-2026-07-22",
+  "source_commit": "025f760c210deebd5bb82dd08ab85b7090849191"
+}

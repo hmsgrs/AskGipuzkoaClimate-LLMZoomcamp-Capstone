@@ -23,7 +23,7 @@ Official information is distributed between weather services, government pages, 
 - Committed, checksummed historical reviewer snapshot
 - Emergency disclaimer and `112` guidance
 - User feedback collection
-- Automatically provisioned Grafana dashboard with eight panels
+- Automatically provisioned Grafana dashboard with nine panels
 - One-command reviewer runtime with optional Kestra orchestration
 
 ## Technology Stack
@@ -60,7 +60,7 @@ Semantic retrieval stores `text-embedding-3-small` vectors in PostgreSQL with pg
 
 Confirmed access paths, source classifications, and credential requirements are documented in [API Discovery](docs/API_DISCOVERY.md).
 
-See [Data Snapshots](docs/SNAPSHOTS.md) for the no-credential audit path and snapshot commands. [Snapshot-First Redesign](docs/SNAPSHOT_REDESIGN.md) records the architecture decision and migration. [Data Ingestion](docs/INGESTION.md) retains provider commands and optional Kestra flows. [RAG Application](docs/APPLICATION.md) documents routing, citations, safety, and startup. Retrieval and prompt results are recorded in [Evaluation](docs/EVALUATION.md), and the PostgreSQL/Grafana contract is in [Monitoring](docs/MONITORING.md).
+See [Data Snapshots](docs/SNAPSHOTS.md) for the no-credential audit path and snapshot commands. [Snapshot-First Redesign](docs/SNAPSHOT_REDESIGN.md) records the architecture decision and migration. [Data Ingestion](docs/INGESTION.md) retains provider commands and optional Kestra flows. [RAG Application](docs/APPLICATION.md) documents routing, citations, safety, and startup. Retrieval and prompt results are recorded in [Evaluation](docs/EVALUATION.md), the fixture publication workflow is in [Session Fixtures](docs/SESSION_FIXTURES.md), and the PostgreSQL/Grafana contract is in [Monitoring](docs/MONITORING.md).
 
 ## Architecture
 
@@ -91,7 +91,7 @@ This project is designed to cover the LLM Zoomcamp project requirements:
 | LLM evaluation | Structured LLM-as-Judge comparison selects the citation/safety prompt |
 | Interface | Bilingual Streamlit UI with source cards, feedback, metrics, and `112` guidance |
 | Ingestion pipeline | Canonical Python snapshot commands plus optional manual Kestra workflows |
-| Monitoring | Consented PostgreSQL events plus an automatically provisioned eight-panel Grafana dashboard |
+| Monitoring | Consented PostgreSQL events plus an automatically provisioned nine-panel Grafana dashboard |
 | Containerization | One Compose command starts pgvector, initialization, Streamlit, and Grafana; Kestra is optional |
 | Reproducibility | Version-pinned dependencies and a committed snapshot with checksummed vectors |
 
@@ -126,7 +126,9 @@ OPENAI_API_KEY=your-key docker compose up --build --wait
 
 Open Streamlit at [http://127.0.0.1:8501](http://127.0.0.1:8501) and Grafana at [http://127.0.0.1:3000](http://127.0.0.1:3000). The local-only Grafana demo login is `admin` / `askgipuzkoa`; override it through `.env` when needed.
 
-The one-shot initializer verifies snapshot `gipuzkoa-demo-2026-07-22`, checks every artifact digest, creates least-privilege database roles, and imports 161 committed vectors. AEMET, Euskalmet, CDS, Kestra, PostgreSQL, and Grafana configuration are not reviewer prerequisites. Stop the stack with `docker compose down`; add `--volumes` to discard consented monitoring data.
+The one-shot initializer verifies snapshot `gipuzkoa-demo-2026-07-22`, checks every artifact digest, creates least-privilege database roles, imports 161 committed vectors, and seeds six auditable sessions. Four sessions are synthetic demonstrations and two are published real test sessions with full prompts and feedback. Grafana labels each record origin explicitly. AEMET, Euskalmet, CDS, Kestra, PostgreSQL, and Grafana configuration are not reviewer prerequisites.
+
+New consented sessions persist in the named PostgreSQL volume across builds and normal restarts, but they are not part of another clone until explicitly exported, reviewed, and committed. Stop the stack with `docker compose down`; `docker compose down --volumes` discards local live sessions and recreates only the six committed fixtures on the next startup. See [Session Fixtures](docs/SESSION_FIXTURES.md) for the publication workflow.
 
 Creating a new all-source snapshot is an optional maintainer path that requires the relevant provider credentials and acceptance of the [Climate Data Store licence](https://cds.climate.copernicus.eu/datasets/reanalysis-era5-land?tab=download#manage-licences). See [Data Snapshots](docs/SNAPSHOTS.md).
 

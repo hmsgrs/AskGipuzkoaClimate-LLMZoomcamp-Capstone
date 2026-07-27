@@ -57,7 +57,7 @@ Update this file whenever the project reaches a milestone or its active priority
 - Corpus/vector validation passes with 9 active documents, 161 chunks, 161 vectors, zero unchanged embeddings, a 67% FTS5 hit rate, and a 100% pgvector hit rate.
 - Supervised enabled-flow executions succeeded for Euskalmet alerts (`4Z5ULbLUMBYhL6txvmndWq`), Euskalmet forecasts (`2T6MvUlX6E7dNzVDC8gKbr`), ERA5-Land (`4AUvyN7V9Mu85BjwYDOyuy`), and corpus/vector refresh (`6SNZZsJy9ls5NL0v7AxzBH`).
 - The initial AEMET historical backfill exposed its token because Kestra still had a pre-redaction ingestion image. The execution/logs were deleted, SQLite receipts were sanitized, the corrected image was rebuilt, and current logs are clean. The token must be rotated before AEMET validation resumes.
-- The suite contains 73 tests: 71 unit tests cover the committed artifacts, reviewer runtime, and application behavior, and both PostgreSQL integration tests pass against a service database.
+- The suite contains 77 tests: 74 unit tests cover committed artifacts, session privacy, reviewer runtime, and application behavior; three PostgreSQL integration tests cover vectors, persistence, and idempotent fixture import/export.
 
 ### RAG application and evaluation
 
@@ -71,7 +71,8 @@ Update this file whenever the project reaches a milestone or its active priority
 - A live answer and online judge round trip succeeded with pgvector, persisted conversation/feedback records, and returned a `RELEVANT` verdict.
 - Retrieval evaluation now reports hit rate and MRR: FTS5 is 67%/0.67 and pgvector is 100%/0.92 at 5.
 - The hardened six-question bilingual prompt evaluation selected the citation/safety prompt at 4.83/5 overall versus 3.67/5 for the course baseline. Citation correctness improved from 1.83 to 4.50; citation-contract compliance and required-source recall both reached 100% versus 16.7%.
-- Grafana automatically provisions its read-only PostgreSQL datasource and eight-panel dashboard. Streamlit and Grafana health checks pass on ports 8501 and 3000.
+- Four synthetic sessions and two explicitly approved real test sessions are committed as checksummed, privacy-validated JSON fixtures. Fresh and existing volumes import them idempotently while preserving future live records.
+- Grafana automatically provisions its read-only PostgreSQL datasource and nine-panel dashboard, including record-origin visibility. Streamlit and Grafana health checks pass on ports 8501 and 3000.
 
 ### Snapshot-first redesign
 

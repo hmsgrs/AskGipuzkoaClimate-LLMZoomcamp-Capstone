@@ -14,6 +14,7 @@ from app.db_init import (
     initialize_pgvector,
 )
 from app.portable_embeddings import import_embeddings, validate_export
+from app.session_fixtures import import_manifest
 from app.snapshot import MANIFEST_NAME, read_snapshot_metadata, verify_snapshot
 
 
@@ -101,6 +102,7 @@ def initialize_runtime(
     app_password: str,
     grafana_role: str,
     grafana_password: str,
+    fixture_manifest: Path | None = None,
 ):
     snapshot = Path(snapshot)
     verification = verify_snapshot(snapshot)
@@ -116,6 +118,11 @@ def initialize_runtime(
     initialize_pgvector(connection, export["dimensions"])
     initialize_application_schema(connection)
     imported = import_embeddings(artifact, snapshot / "snapshot.sqlite", connection)
+    sessions = (
+        import_manifest(connection, fixture_manifest)
+        if fixture_manifest is not None
+        else {"fixture_sets": 0, "conversations": 0, "feedback": 0}
+    )
     provision_roles(
         connection,
         app_role,
@@ -128,6 +135,7 @@ def initialize_runtime(
         "database_sha256": verification["database_sha256"],
         "vectors": imported["imported"],
         "embedding_model": imported["embedding_model"],
+        "session_fixtures": sessions,
     }
 
 
@@ -141,6 +149,7 @@ def main():
             app_password=_required_env("APP_DATABASE_PASSWORD"),
             grafana_role=_required_env("GRAFANA_DATABASE_USER", "askgipuzkoa_grafana"),
             grafana_password=_required_env("GRAFANA_DATABASE_PASSWORD"),
+            fixture_manifest=Path(_required_env("SESSION_FIXTURE_MANIFEST")),
         )
     print(json.dumps(result, indent=2, sort_keys=True))
 

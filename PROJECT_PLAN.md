@@ -63,7 +63,7 @@ PostgreSQL with pgvector stores an embedding for every SQLite chunk, using the S
 | Table | Purpose |
 |---|---|
 | `chunk_embeddings` | pgvector embedding, SQLite chunk ID, model metadata |
-| `conversations` | Question, answer, prompt, token usage, latency, cost, and timestamps |
+| `conversations` | Question, answer, prompt, token usage, latency, cost, timestamps, fixture identity, and live/synthetic/published origin |
 | `feedback` | User and LLM-judge feedback linked to conversations |
 
 pgvector similarity search will provide the second retrieval approach for evaluation.

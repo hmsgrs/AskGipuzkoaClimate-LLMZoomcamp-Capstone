@@ -35,6 +35,7 @@ def test_application_image_contains_only_committed_reviewer_snapshot():
     dockerignore = (ROOT / ".dockerignore").read_text(encoding="utf-8")
 
     assert "COPY data/snapshots ./data/snapshots" in dockerfile
+    assert "COPY evaluation/session_fixtures ./evaluation/session_fixtures" in dockerfile
     assert "!data/snapshots/gipuzkoa-demo-2026-07-22/" in dockerignore
     assert "docs/api_keys/" in dockerignore
 
@@ -46,3 +47,4 @@ def test_application_image_validates_streamlit_import_path_during_build():
     assert 'PYTHONPATH="/app"' in dockerfile
     assert "AppTest.from_file('/app/app/streamlit_app.py')" in dockerfile
     assert "import app, urllib.request" in compose
+    assert "SESSION_FIXTURE_MANIFEST" in compose

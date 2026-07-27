@@ -1,0 +1,19 @@
+{
+  "fixtures": [
+    {
+      "conversations": 2,
+      "feedback": 3,
+      "path": "published_test_sessions.json",
+      "record_origin": "published_test",
+      "sha256": "74eb0c053c701d59bd1390bf1762291560317fa3145f9ddeb0d6ba4964727f92"
+    },
+    {
+      "conversations": 4,
+      "feedback": 6,
+      "path": "synthetic_sessions.json",
+      "record_origin": "synthetic_fixture",
+      "sha256": "c76c36d1e7811115e6686f49dcdc21689bbf9eec08459f91cfdcaf2028df8493"
+    }
+  ],
+  "schema_version": 1
+}

@@ -48,9 +48,9 @@ The selected prompt instructs the model to answer in the question's language, us
 
 ## Persistence And Feedback
 
-`app.runtime_init` creates the vector, conversation, and feedback schemas before the application starts. Streamlit uses a least-privilege writer that cannot alter document vectors or create schema objects. Storage is disabled by default. If the user explicitly enables it before asking, the application stores the question, answer, grounded prompt, route, language, backend, model, tokens, latency, estimated cost, citations, citation-contract status, and UTC time. Feedback and the optional LLM relevance verdict are available only for a stored conversation.
+`app.runtime_init` creates the vector, conversation, and feedback schemas before the application starts. It verifies and imports four synthetic sessions plus two approved real test sessions so a fresh clone has auditable monitoring data. `record_origin` distinguishes `synthetic_fixture`, `published_test`, and future `live` records. Streamlit uses a least-privilege writer that cannot alter document vectors or create schema objects. Storage is disabled by default. If the user explicitly enables it before asking, the application stores the question, answer, grounded prompt, route, language, backend, model, tokens, latency, estimated cost, citations, citation-contract status, and UTC time. Feedback and the optional LLM relevance verdict are available only for a stored conversation.
 
-The application does not persist IP addresses or browser identifiers. Consented questions, answers, prompts, and comments remain in local PostgreSQL until manually deleted, so a hosted deployment still requires an explicit privacy and retention policy.
+The application does not persist IP addresses or browser identifiers. Consented live questions, answers, prompts, and comments remain in local PostgreSQL until manually deleted. They are not published automatically. The two records labelled `published_test` were explicitly selected, privacy-scanned, reviewed, and committed with their full stored content. A hosted deployment still requires an explicit privacy and retention policy.
 
 ## Safety Boundary
 

@@ -1,0 +1,180 @@
+{
+  "conversations": [
+    {
+      "answer": "El cambio climático es global porque los gases de efecto invernadero atraviesan fronteras y alteran la atmósfera y los ecosistemas a escala planetaria [S1].",
+      "citations": [
+        {
+          "citation_id": "S1",
+          "language": "es",
+          "organization": "Gobierno Vasco",
+          "publication_date": "2018-04-30",
+          "retrieved_at": "2026-07-22T11:20:48.641168+00:00",
+          "source_id": "basque-government-climate",
+          "source_type": "climate_risk_guidance",
+          "stale": false,
+          "title": "Cambio climático",
+          "url": "https://www.euskadi.eus/informacion/cambio-climatico/web01-a2ingkli/es/"
+        }
+      ],
+      "completion_tokens": 44,
+      "cost": 0.000541,
+      "feedback": [
+        {
+          "comment": "Respuesta clara y bien citada.",
+          "explanation": null,
+          "relevance": null,
+          "score": 1,
+          "source": "user",
+          "timestamp": "2026-07-27T08:01:00+00:00"
+        },
+        {
+          "comment": null,
+          "explanation": "La respuesta contesta directamente y usa la fuente oficial requerida.",
+          "relevance": "RELEVANT",
+          "score": null,
+          "source": "judge",
+          "timestamp": "2026-07-27T08:01:05+00:00"
+        }
+      ],
+      "fixture_id": "synthetic-climate-definition-es",
+      "instructions": "Answer using only official context and cite every factual claim.",
+      "language": "es",
+      "model": "gpt-5.4-mini",
+      "prompt": "QUESTION: ¿Por qué el cambio climático es un problema global?\nOFFICIAL CONTEXT: [S1] Gobierno Vasco, Cambio climático.",
+      "prompt_tokens": 612,
+      "question": "¿Por qué el cambio climático es un problema global?",
+      "response_time": 1.24,
+      "retrieval_backend": "pgvector",
+      "route": "knowledge_base",
+      "status": "success",
+      "timestamp": "2026-07-27T08:00:58+00:00",
+      "total_tokens": 656
+    },
+    {
+      "answer": "Euskalmet publishes official recommendations for adverse weather, including practical guidance for the public [S1].",
+      "citations": [
+        {
+          "citation_id": "S1",
+          "language": "es",
+          "organization": "Euskalmet",
+          "publication_date": null,
+          "retrieved_at": "2026-07-22T11:20:46.885043+00:00",
+          "source_id": "euskalmet-recommendations",
+          "source_type": "emergency_preparedness",
+          "stale": false,
+          "title": "Recomendaciones ante meteorología adversa",
+          "url": "https://www.euskalmet.euskadi.eus/servicios/recomendaciones/"
+        }
+      ],
+      "completion_tokens": 37,
+      "cost": 0.000473,
+      "feedback": [
+        {
+          "comment": "Useful official link.",
+          "explanation": null,
+          "relevance": null,
+          "score": 1,
+          "source": "user",
+          "timestamp": "2026-07-27T08:05:10+00:00"
+        }
+      ],
+      "fixture_id": "synthetic-recommendations-en",
+      "instructions": "Answer using only official context and cite every factual claim.",
+      "language": "en",
+      "model": "gpt-5.4-mini",
+      "prompt": "QUESTION: Where can I find official adverse-weather recommendations?\nOFFICIAL CONTEXT: [S1] Euskalmet recommendations.",
+      "prompt_tokens": 488,
+      "question": "Where can I find official adverse-weather recommendations?",
+      "response_time": 1.08,
+      "retrieval_backend": "pgvector",
+      "route": "knowledge_base",
+      "status": "success",
+      "timestamp": "2026-07-27T08:05:08+00:00",
+      "total_tokens": 525
+    },
+    {
+      "answer": "La instantánea histórica muestra para Donostia una previsión de nubes, con temperaturas entre 15 y 22 °C [S1]. No describe condiciones actuales.",
+      "citations": [
+        {
+          "citation_id": "S1",
+          "language": "es",
+          "organization": "Euskalmet",
+          "publication_date": "2026-07-23",
+          "retrieved_at": "2026-07-22T08:39:30+00:00",
+          "source_id": "euskalmet-forecast",
+          "source_type": "snapshot_weather_forecast",
+          "stale": true,
+          "title": "Previsión histórica para Donostia",
+          "url": "https://www.euskalmet.euskadi.eus/"
+        }
+      ],
+      "completion_tokens": 58,
+      "cost": 0.000612,
+      "feedback": [
+        {
+          "comment": "Correct but the historical limitation could appear first.",
+          "explanation": null,
+          "relevance": null,
+          "score": -1,
+          "source": "user",
+          "timestamp": "2026-07-27T08:10:15+00:00"
+        },
+        {
+          "comment": null,
+          "explanation": "The answer is grounded but could emphasize historical scope earlier.",
+          "relevance": "PARTLY_RELEVANT",
+          "score": null,
+          "source": "judge",
+          "timestamp": "2026-07-27T08:10:20+00:00"
+        }
+      ],
+      "fixture_id": "synthetic-historical-weather-es",
+      "instructions": "Treat snapshot weather as historical and cite the official snapshot.",
+      "language": "es",
+      "model": "gpt-5.4-mini",
+      "prompt": "QUESTION: ¿Qué tiempo mostraba la instantánea para Donostia?\nOFFICIAL CONTEXT: [S1] Previsión histórica de Euskalmet.",
+      "prompt_tokens": 701,
+      "question": "¿Qué tiempo mostraba la instantánea para Donostia?",
+      "response_time": 1.36,
+      "retrieval_backend": "cached_official_weather",
+      "route": "live_weather",
+      "status": "success",
+      "timestamp": "2026-07-27T08:10:12+00:00",
+      "total_tokens": 759
+    },
+    {
+      "answer": "If there is immediate danger, call 112 now and follow official emergency-service instructions. This application does not replace emergency services.",
+      "citations": [],
+      "completion_tokens": 0,
+      "cost": 0.0,
+      "feedback": [
+        {
+          "comment": "Immediate and appropriate safety direction.",
+          "explanation": null,
+          "relevance": null,
+          "score": 1,
+          "source": "user",
+          "timestamp": "2026-07-27T08:15:03+00:00"
+        }
+      ],
+      "fixture_id": "synthetic-emergency-en",
+      "instructions": null,
+      "language": "en",
+      "model": null,
+      "prompt": null,
+      "prompt_tokens": 0,
+      "question": "There is immediate danger. What should I do?",
+      "response_time": 0.0,
+      "retrieval_backend": "safety_rule",
+      "route": "emergency",
+      "status": "success",
+      "timestamp": "2026-07-27T08:15:02+00:00",
+      "total_tokens": 0
+    }
+  ],
+  "fixture_set": "synthetic_reviewer_sessions",
+  "record_origin": "synthetic_fixture",
+  "schema_version": 1,
+  "snapshot_id": "gipuzkoa-demo-2026-07-22",
+  "source_commit": "025f760c210deebd5bb82dd08ab85b7090849191"
+}

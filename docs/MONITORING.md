@@ -4,9 +4,9 @@ With explicit user consent, the application records answer-generation events and
 
 ## Stored Dimensions
 
-The `conversations` table stores the question and answer, route, language, retrieval backend, model, prompt, token counts, latency, estimated cost, source cards, status, and UTC timestamp. The `feedback` table stores user scores/comments and LLM relevance verdicts.
+The `conversations` table stores the question and answer, route, language, retrieval backend, model, prompt, token counts, latency, estimated cost, source cards, status, UTC timestamp, stable fixture ID, and record origin. Origins are `synthetic_fixture`, `published_test`, or `live`. The `feedback` table stores user scores/comments and LLM relevance verdicts.
 
-The application does not store IP addresses or browser identifiers. If storage is enabled, questions, answers, grounded prompts, and optional comments remain until manually deleted. A public deployment therefore needs an explicit privacy and retention policy even though OpenAI response storage is disabled with `store=False`.
+The application does not store IP addresses or browser identifiers. If storage is enabled, questions, answers, grounded prompts, and optional comments remain until manually deleted. Live records remain local unless an operator explicitly exports, privacy-validates, reviews, and commits them. Published fixture content is public repository evidence. A public deployment therefore needs an explicit privacy and retention policy even though OpenAI response storage is disabled with `store=False`.
 
 ## Dashboard
 
@@ -20,9 +20,10 @@ Compose provisions `grafana/dashboards/askgipuzkoa.json` and its PostgreSQL data
 6. LLM-as-Judge relevance distribution
 7. Token usage
 8. Estimated generation cost
+9. Synthetic, published-test, and live record origin
 
 All time-series queries use Grafana's selected-range macros and the dashboard refreshes every 30 seconds. The default view is the last six hours.
 
 ## Selected Local Topology
 
-Streamlit binds to `127.0.0.1:8501`; Grafana binds to `127.0.0.1:3000`; PostgreSQL is not exposed to the host. `runtime-init` owns schema and vector import. `askgipuzkoa_app` can read vectors and write monitoring rows but cannot alter vectors or create objects. `askgipuzkoa_grafana` can read only conversations and feedback. Consented records remain until manually deleted or `docker compose down --volumes` removes the local volumes.
+Streamlit binds to `127.0.0.1:8501`; Grafana binds to `127.0.0.1:3000`; PostgreSQL is not exposed to the host. `runtime-init` owns schema, vector import, fixture hash verification, and idempotent fixture loading. `askgipuzkoa_app` can read vectors and write monitoring rows but cannot alter vectors or create objects. `askgipuzkoa_grafana` can read only conversations and feedback. Consented live records remain until manually deleted or `docker compose down --volumes` removes the local volumes. A fresh volume always reloads the committed six-session fixture set.

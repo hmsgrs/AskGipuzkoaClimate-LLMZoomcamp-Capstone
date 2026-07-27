@@ -116,6 +116,37 @@ def initialize_application_schema(connection):
         """
     )
     connection.execute(
+        "ALTER TABLE conversations ADD COLUMN IF NOT EXISTS fixture_id TEXT"
+    )
+    connection.execute(
+        """
+        ALTER TABLE conversations
+        ADD COLUMN IF NOT EXISTS record_origin TEXT NOT NULL DEFAULT 'live'
+        """
+    )
+    connection.execute(
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint
+                WHERE conname = 'conversations_record_origin_check'
+            ) THEN
+                ALTER TABLE conversations
+                ADD CONSTRAINT conversations_record_origin_check
+                CHECK (record_origin IN ('live', 'synthetic_fixture', 'published_test'));
+            END IF;
+        END
+        $$
+        """
+    )
+    connection.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS conversations_fixture_id_idx
+        ON conversations (fixture_id) WHERE fixture_id IS NOT NULL
+        """
+    )
+    connection.execute(
         "CREATE INDEX IF NOT EXISTS conversations_timestamp_idx ON conversations (timestamp)"
     )
     connection.execute(
