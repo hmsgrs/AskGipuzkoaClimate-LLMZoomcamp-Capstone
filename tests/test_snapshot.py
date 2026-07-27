@@ -211,4 +211,4 @@ def test_snapshot_weather_uses_acquisition_date_and_marks_archived_alerts(tmp_pa
     assert forecast[0]["source_type"] == "snapshot_weather_forecast"
     assert warnings[0]["source_type"] == "snapshot_weather_alert"
     assert warnings[0]["stale"] is True
-    assert "Historical warning snapshot" in warnings[0]["text"]
+    assert "Archived warning response" in warnings[0]["text"]

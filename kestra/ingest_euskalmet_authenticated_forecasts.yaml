@@ -2,14 +2,14 @@ id: ingest_euskalmet_authenticated_forecasts
 namespace: llm_zoomcamp_capstone
 disabled: false
 
-description: Refresh the validated three-day Donostia location forecast.
+description: Refresh three forecast days for ten representative Gipuzkoa municipalities.
 
 concurrency:
   limit: 1
   behavior: QUEUE
 
 tasks:
-  - id: refresh_donostia
+  - id: refresh_representative_locations
     type: io.kestra.plugin.scripts.shell.Commands
     containerImage: gipuzkoa-askbot-ingestion:0.2.0
     taskRunner:
@@ -26,8 +26,7 @@ tasks:
     commands:
       - >-
         PYTHONPATH=/app /app/.venv/bin/python -m app.ingest --database /data/ingestion.sqlite
-        refresh-euskalmet-forecasts --region basque_country --zone donostialdea
-        --location donostia --horizon-days 3
+        refresh-euskalmet-forecasts --scope representative --horizon-days 3
         --as-of "{{ execution.startDate | date('yyyy-MM-dd') }}"
     timeout: PT10M
     retry:

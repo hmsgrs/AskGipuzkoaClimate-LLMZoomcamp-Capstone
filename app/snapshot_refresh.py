@@ -10,13 +10,14 @@ from pathlib import Path
 from app.aemet import AemetClient
 from app.climate_ingest import download_monthly_era5_land, monthly_output_path
 from app.euskalmet import EuskalmetClient
+from app.euskalmet_scope import GIPUZKOA_ALERT_AREAS, REPRESENTATIVE_LOCATIONS
 from app.euskalmet_web import fetch_euskalmet_homepage
 from app.ingest import (
     get_database,
     load_euskalmet_forecast,
     load_euskalmet_stations,
-    refresh_euskalmet_alerts,
-    refresh_euskalmet_forecasts,
+    refresh_euskalmet_alert_scope,
+    refresh_euskalmet_forecast_scope,
     save_aemet_daily_observations,
     save_aemet_stations,
     save_euskalmet_forecast,
@@ -35,11 +36,7 @@ class SnapshotRefreshConfig:
     aemet_station: str
     aemet_start: str
     aemet_end: str
-    euskalmet_region: str
-    euskalmet_zone: str
-    euskalmet_location: str
     forecast_horizon_days: int
-    alert_zone: str
     era5_year: int
     era5_month: int
     questions: Path
@@ -102,18 +99,19 @@ def capture_all_sources(
     if results["aemet_observations"] == 0:
         raise ValueError("AEMET returned no observations for the bounded range")
 
-    results["authenticated_forecasts"] = refresh_euskalmet_forecasts(
+    results["authenticated_forecasts"] = refresh_euskalmet_forecast_scope(
         connection,
-        config.euskalmet_region,
-        config.euskalmet_zone,
-        config.euskalmet_location,
+        tuple(
+            (location.region, location.zone, location.location)
+            for location in REPRESENTATIVE_LOCATIONS
+        ),
         horizon_days=config.forecast_horizon_days,
         as_of=config.as_of,
         client=euskalmet_client,
     )
-    results["authenticated_alerts"] = refresh_euskalmet_alerts(
+    results["authenticated_alerts"] = refresh_euskalmet_alert_scope(
         connection,
-        config.alert_zone,
+        tuple(area.zone for area in GIPUZKOA_ALERT_AREAS),
         as_of=config.as_of,
         client=euskalmet_client,
     )
@@ -208,11 +206,7 @@ def parse_args(argv=None):
     parser.add_argument("--aemet-station", default="1012P")
     parser.add_argument("--aemet-start", required=True, help="YYYY-MM-DD")
     parser.add_argument("--aemet-end", required=True, help="YYYY-MM-DD")
-    parser.add_argument("--euskalmet-region", default="basque_country")
-    parser.add_argument("--euskalmet-zone", default="donostialdea")
-    parser.add_argument("--euskalmet-location", default="donostia")
     parser.add_argument("--forecast-horizon-days", type=int, default=3)
-    parser.add_argument("--alert-zone", default="GIPUZKOA_COAST")
     parser.add_argument("--era5-year", required=True, type=int)
     parser.add_argument("--era5-month", required=True, type=int)
     parser.add_argument(
@@ -232,11 +226,7 @@ def main(argv=None):
         aemet_station=args.aemet_station,
         aemet_start=args.aemet_start,
         aemet_end=args.aemet_end,
-        euskalmet_region=args.euskalmet_region,
-        euskalmet_zone=args.euskalmet_zone,
-        euskalmet_location=args.euskalmet_location,
         forecast_horizon_days=args.forecast_horizon_days,
-        alert_zone=args.alert_zone,
         era5_year=args.era5_year,
         era5_month=args.era5_month,
         questions=args.questions,

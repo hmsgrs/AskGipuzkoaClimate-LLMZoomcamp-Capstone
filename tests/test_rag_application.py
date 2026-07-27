@@ -264,3 +264,85 @@ def test_cached_weather_uses_authenticated_snapshot_for_tomorrow(tmp_path):
     assert results[0]["publication_date"] == request["issued_date"]
     assert tomorrow.isoformat() in results[0]["text"]
     assert results[0]["url"] == "https://example.test/authenticated-forecast"
+
+
+def test_cached_weather_filters_alias_and_day_after_tomorrow(tmp_path):
+    database = tmp_path / "weather.sqlite"
+    connection = get_database(database)
+    retrieved_at = datetime.now(UTC).isoformat()
+    reference = datetime.now(ZoneInfo("Europe/Madrid")).date()
+    for location, zone in (("donostia", "donostialdea"), ("lasarte", "cantabrian_valleys")):
+        for offset in range(3):
+            target = reference + timedelta(days=offset)
+            request = {
+                "issued_date": reference.isoformat(),
+                "target_date": target.isoformat(),
+                "location": location,
+                "zone": zone,
+                "region": "basque_country",
+            }
+            connection.execute(
+                """
+                INSERT INTO weather_api_snapshots
+                    (provider, snapshot_id, payload_json, source_url, retrieved_at, request_json)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "euskalmet-location-forecast",
+                    f"{location}-{offset}",
+                    json.dumps(
+                        {
+                            "forecastText": {"SPANISH": f"Forecast {location} {offset}"},
+                            "temperatureRange": {"min": 10 + offset, "max": 20 + offset},
+                        }
+                    ),
+                    f"https://example.test/{location}/{offset}",
+                    retrieved_at,
+                    json.dumps(request),
+                ),
+            )
+    connection.commit()
+    connection.close()
+
+    results = CachedWeatherRepository(database).search(
+        "¿Qué tiempo hará pasado mañana en Lasarte-Oria?"
+    )
+
+    assert len(results) == 1
+    assert "Lasarte-Oria" in results[0]["title"]
+    assert (reference + timedelta(days=2)).isoformat() in results[0]["text"]
+    assert "donostia" not in results[0]["source_id"]
+
+
+def test_cached_warning_snapshots_keep_identical_zone_responses(tmp_path):
+    database = tmp_path / "weather.sqlite"
+    connection = get_database(database)
+    retrieved_at = datetime.now(UTC).isoformat()
+    for zone in ("GIPUZKOA_COAST", "GIPUZKOA_INTERIOR"):
+        connection.execute(
+            """
+            INSERT INTO hazard_alerts
+                (provider, alert_id, payload_json, source_url, retrieved_at, request_json)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "euskalmet-alerts",
+                zone,
+                "[]",
+                f"https://example.test/{zone}",
+                retrieved_at,
+                json.dumps({"zone": zone, "issued_date": "2026-07-27"}),
+            ),
+        )
+    connection.commit()
+    connection.close()
+
+    repository = CachedWeatherRepository(database, snapshot_mode=True)
+    both = repository.search("What warning responses were captured in Gipuzkoa?")
+    coast = repository.search("¿Qué avisos se capturaron para la costa de Gipuzkoa?")
+
+    assert len(both) == 2
+    assert len(coast) == 1
+    assert "Gipuzkoa coast" in coast[0]["title"]
+    assert "does not establish current safety" in coast[0]["text"]
+    assert coast[0]["stale"] is True

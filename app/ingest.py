@@ -15,6 +15,7 @@ from filelock import FileLock
 
 from app.aemet import AemetClient
 from app.euskalmet import ALERT_ZONES, BASE_URL as EUSKALMET_BASE_URL, EuskalmetClient
+from app.euskalmet_scope import GIPUZKOA_ALERT_AREAS, REPRESENTATIVE_LOCATIONS
 from app.euskalmet_web import fetch_euskalmet_homepage
 from app.embedding_sync import sync_embeddings
 from app.knowledge_base import (
@@ -446,39 +447,56 @@ def date_chunks(start: date, end: date, chunk_days: int):
 
 
 def refresh_euskalmet_alerts(connection, zone, as_of=None, client=None):
+    return refresh_euskalmet_alert_scope(
+        connection, (zone,), as_of=as_of, client=client
+    )
+
+
+def refresh_euskalmet_alert_scope(connection, zones, as_of=None, client=None):
+    zones = tuple(zones)
+    if not zones:
+        raise ValueError("At least one Euskalmet alert zone is required")
+    invalid = sorted(set(zones) - set(ALERT_ZONES))
+    if invalid:
+        raise ValueError(f"Unknown Euskalmet alert zones: {', '.join(invalid)}")
     issued_date = operation_date(as_of)
     client = client or EuskalmetClient()
     flow_id = "ingest_euskalmet_authenticated_alerts"
     run_id = begin_run(connection, flow_id)
-    request = {"zone": zone, "issued_date": issued_date.isoformat()}
+    succeeded = 0
     try:
-        payload = client.alert_forecast(zone, issued_date)
-        path = f"/euskalmet/alerts/zones/{zone}/forecast/at/{issued_date:%Y/%m/%d}"
-        save_alert_snapshot(
-            connection,
-            "euskalmet-alerts",
-            payload,
-            f"{EUSKALMET_BASE_URL}{path}",
-            request,
-        )
+        for zone in zones:
+            request = {"zone": zone, "issued_date": issued_date.isoformat()}
+            payload = client.alert_forecast(zone, issued_date)
+            if not isinstance(payload, (dict, list)):
+                raise ValueError(f"Unexpected Euskalmet alert payload for {zone}")
+            path = f"/euskalmet/alerts/zones/{zone}/forecast/at/{issued_date:%Y/%m/%d}"
+            save_alert_snapshot(
+                connection,
+                "euskalmet-alerts",
+                payload,
+                f"{EUSKALMET_BASE_URL}{path}",
+                request,
+            )
+            succeeded += 1
         return finish_run(
             connection,
             run_id,
             status="ok",
-            requested=1,
-            succeeded=1,
+            requested=len(zones),
+            succeeded=succeeded,
             failed=0,
-            upserted=1,
+            upserted=succeeded,
         )
     except Exception as error:
         finish_run(
             connection,
             run_id,
             status="failed",
-            requested=1,
-            succeeded=0,
-            failed=1,
-            upserted=0,
+            requested=len(zones),
+            succeeded=succeeded,
+            failed=len(zones) - succeeded,
+            upserted=succeeded,
             error=str(error),
         )
         raise
@@ -493,43 +511,71 @@ def refresh_euskalmet_forecasts(
     as_of=None,
     client=None,
 ):
+    location_scope = ((region, zone, location),)
+    return refresh_euskalmet_forecast_scope(
+        connection,
+        location_scope,
+        horizon_days=horizon_days,
+        as_of=as_of,
+        client=client,
+    )
+
+
+def refresh_euskalmet_forecast_scope(
+    connection,
+    locations,
+    horizon_days=3,
+    as_of=None,
+    client=None,
+):
     if horizon_days <= 0:
         raise ValueError("horizon_days must be positive")
+    locations = tuple(locations)
+    if not locations:
+        raise ValueError("At least one Euskalmet forecast location is required")
     issued_date = operation_date(as_of)
     client = client or EuskalmetClient()
     flow_id = "ingest_euskalmet_authenticated_forecasts"
     run_id = begin_run(connection, flow_id)
     succeeded = 0
     try:
-        for offset in range(horizon_days):
-            target_date = issued_date + timedelta(days=offset)
-            payload = client.location_forecast(
-                region, zone, location, issued_date, target_date
-            )
-            path = (
-                f"/euskalmet/weather/regions/{region}/zones/{zone}/"
-                f"locations/{location}/forecast/at/{issued_date:%Y/%m/%d}/"
-                f"for/{target_date:%Y%m%d}"
-            )
-            save_weather_snapshot(
-                connection,
-                "euskalmet-location-forecast",
-                payload,
-                f"{EUSKALMET_BASE_URL}{path}",
-                {
-                    "region": region,
-                    "zone": zone,
-                    "location": location,
-                    "issued_date": issued_date.isoformat(),
-                    "target_date": target_date.isoformat(),
-                },
-            )
-            succeeded += 1
+        for location_scope in locations:
+            region, zone, location = location_scope
+            for offset in range(horizon_days):
+                target_date = issued_date + timedelta(days=offset)
+                payload = client.location_forecast(
+                    region, zone, location, issued_date, target_date
+                )
+                if not isinstance(payload, dict) or not payload:
+                    raise ValueError(
+                        f"Unexpected Euskalmet forecast payload for {location} "
+                        f"on {target_date.isoformat()}"
+                    )
+                path = (
+                    f"/euskalmet/weather/regions/{region}/zones/{zone}/"
+                    f"locations/{location}/forecast/at/{issued_date:%Y/%m/%d}/"
+                    f"for/{target_date:%Y%m%d}"
+                )
+                save_weather_snapshot(
+                    connection,
+                    "euskalmet-location-forecast",
+                    payload,
+                    f"{EUSKALMET_BASE_URL}{path}",
+                    {
+                        "region": region,
+                        "zone": zone,
+                        "location": location,
+                        "issued_date": issued_date.isoformat(),
+                        "target_date": target_date.isoformat(),
+                    },
+                )
+                succeeded += 1
+        requested = len(locations) * horizon_days
         return finish_run(
             connection,
             run_id,
             status="ok",
-            requested=horizon_days,
+            requested=requested,
             succeeded=succeeded,
             failed=0,
             upserted=succeeded,
@@ -539,9 +585,9 @@ def refresh_euskalmet_forecasts(
             connection,
             run_id,
             status="failed",
-            requested=horizon_days,
+            requested=len(locations) * horizon_days,
             succeeded=succeeded,
-            failed=horizon_days - succeeded,
+            failed=len(locations) * horizon_days - succeeded,
             upserted=succeeded,
             error=str(error),
         )
@@ -668,6 +714,9 @@ def parse_args():
 
     alert_refresh = subparsers.add_parser("refresh-euskalmet-alerts")
     alert_refresh.add_argument("--zone", choices=ALERT_ZONES, default="GIPUZKOA_COAST")
+    alert_refresh.add_argument(
+        "--scope", choices=("single", "gipuzkoa"), default="single"
+    )
     alert_refresh.add_argument("--as-of", help="Europe/Madrid date, YYYY-MM-DD")
 
     forecast_refresh = subparsers.add_parser("refresh-euskalmet-forecasts")
@@ -675,6 +724,9 @@ def parse_args():
     forecast_refresh.add_argument("--zone", default="donostialdea")
     forecast_refresh.add_argument("--location", default="donostia")
     forecast_refresh.add_argument("--horizon-days", type=int, default=3)
+    forecast_refresh.add_argument(
+        "--scope", choices=("single", "representative"), default="single"
+    )
     forecast_refresh.add_argument("--as-of", help="Europe/Madrid date, YYYY-MM-DD")
 
     aemet_refresh = subparsers.add_parser("refresh-aemet-daily")
@@ -850,24 +902,35 @@ def main():
         elif args.command == "euskalmet-homepage-alerts":
             print(json.dumps(save_euskalmet_homepage(connection, fetch_euskalmet_homepage())))
         elif args.command == "refresh-euskalmet-alerts":
+            zones = (
+                tuple(area.zone for area in GIPUZKOA_ALERT_AREAS)
+                if args.scope == "gipuzkoa"
+                else (args.zone,)
+            )
             print(
                 json.dumps(
-                    refresh_euskalmet_alerts(
-                        connection, args.zone, as_of=args.as_of
+                    refresh_euskalmet_alert_scope(
+                        connection, zones, as_of=args.as_of
                     ),
                     indent=2,
                 )
             )
         elif args.command == "refresh-euskalmet-forecasts":
+            locations = (
+                tuple(
+                    (location.region, location.zone, location.location)
+                    for location in REPRESENTATIVE_LOCATIONS
+                )
+                if args.scope == "representative"
+                else ((args.region, args.zone, args.location),)
+            )
             print(
                 json.dumps(
-                    refresh_euskalmet_forecasts(
+                    refresh_euskalmet_forecast_scope(
                         connection,
-                        args.region,
-                        args.zone,
-                        args.location,
-                        args.horizon_days,
-                        args.as_of,
+                        locations,
+                        horizon_days=args.horizon_days,
+                        as_of=args.as_of,
                     ),
                     indent=2,
                 )

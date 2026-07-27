@@ -2,14 +2,14 @@ id: ingest_euskalmet_authenticated_alerts
 namespace: llm_zoomcamp_capstone
 disabled: false
 
-description: Refresh the validated Gipuzkoa coast alert forecast with a fresh JWT.
+description: Refresh Gipuzkoa coast and interior alert responses with a fresh JWT.
 
 concurrency:
   limit: 1
   behavior: QUEUE
 
 tasks:
-  - id: refresh_gipuzkoa_coast
+  - id: refresh_gipuzkoa_alert_areas
     type: io.kestra.plugin.scripts.shell.Commands
     containerImage: gipuzkoa-askbot-ingestion:0.2.0
     taskRunner:
@@ -26,7 +26,7 @@ tasks:
     commands:
       - >-
         PYTHONPATH=/app /app/.venv/bin/python -m app.ingest --database /data/ingestion.sqlite
-        refresh-euskalmet-alerts --zone GIPUZKOA_COAST
+        refresh-euskalmet-alerts --scope gipuzkoa
         --as-of "{{ execution.startDate | date('yyyy-MM-dd') }}"
     timeout: PT5M
     retry:

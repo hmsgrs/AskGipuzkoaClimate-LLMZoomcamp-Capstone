@@ -16,9 +16,11 @@ from app.snapshot import read_snapshot_metadata
 
 SAMPLE_QUESTIONS = (
     "¿Qué es el cambio climático y por qué es un problema global?",
-    "Where can I find official adverse-weather recommendations?",
-    "¿Qué tiempo hará mañana en Donostia?",
-    "What were climate conditions like during summer 2021?",
+    "¿Qué previsión muestra la instantánea para hoy en Hernani?",
+    "What forecast was captured for tomorrow in Lasarte-Oria?",
+    "¿Qué tiempo se capturó para pasado mañana en Irun?",
+    "¿Qué avisos se capturaron para la costa de Gipuzkoa?",
+    "What warning response was captured for inland Gipuzkoa?",
 )
 
 

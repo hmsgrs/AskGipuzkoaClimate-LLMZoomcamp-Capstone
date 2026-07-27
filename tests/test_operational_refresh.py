@@ -11,10 +11,13 @@ from app.ingest import (
     get_database,
     refresh_aemet_daily,
     refresh_euskalmet_alerts,
+    refresh_euskalmet_alert_scope,
+    refresh_euskalmet_forecast_scope,
     refresh_euskalmet_forecasts,
     save_alert_snapshot,
     save_weather_snapshot,
 )
+from app.euskalmet_scope import GIPUZKOA_ALERT_AREAS, REPRESENTATIVE_LOCATIONS
 
 
 class FakeEuskalmetClient:
@@ -104,6 +107,32 @@ def test_refreshes_validated_euskalmet_units_and_records_receipts(tmp_path: Path
         date(2026, 7, 24),
     ]
     assert connection.execute("SELECT COUNT(*) FROM ingestion_runs").fetchone()[0] == 2
+
+
+def test_representative_scope_records_thirty_forecasts_and_two_alerts(tmp_path: Path):
+    connection = get_database(tmp_path / "ingestion.sqlite")
+    client = FakeEuskalmetClient()
+    locations = tuple(
+        (location.region, location.zone, location.location)
+        for location in REPRESENTATIVE_LOCATIONS
+    )
+    zones = tuple(area.zone for area in GIPUZKOA_ALERT_AREAS)
+
+    forecasts = refresh_euskalmet_forecast_scope(
+        connection, locations, horizon_days=3, as_of="2026-07-27", client=client
+    )
+    alerts = refresh_euskalmet_alert_scope(
+        connection, zones, as_of="2026-07-27", client=client
+    )
+
+    assert forecasts["requested"] == forecasts["succeeded"] == 30
+    assert alerts["requested"] == alerts["succeeded"] == 2
+    assert len(client.forecast_calls) == 30
+    assert len(client.alert_calls) == 2
+    assert connection.execute(
+        "SELECT COUNT(*) FROM weather_api_snapshots"
+    ).fetchone()[0] == 30
+    assert connection.execute("SELECT COUNT(*) FROM hazard_alerts").fetchone()[0] == 2
 
 
 def test_aemet_incremental_refresh_chunks_and_repairs_dates(tmp_path: Path):
