@@ -11,7 +11,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${DS_POSTGRESQL}"
+        "uid": "askgipuzkoa-postgres"
       },
       "fieldConfig": {
         "defaults": {
@@ -44,7 +44,7 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${DS_POSTGRESQL}"
+            "uid": "askgipuzkoa-postgres"
           },
           "format": "time_series",
           "rawQuery": true,
@@ -58,7 +58,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${DS_POSTGRESQL}"
+        "uid": "askgipuzkoa-postgres"
       },
       "fieldConfig": {
         "defaults": {},
@@ -99,7 +99,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${DS_POSTGRESQL}"
+        "uid": "askgipuzkoa-postgres"
       },
       "fieldConfig": {
         "defaults": {},
@@ -140,7 +140,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${DS_POSTGRESQL}"
+        "uid": "askgipuzkoa-postgres"
       },
       "fieldConfig": {
         "defaults": {
@@ -180,7 +180,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${DS_POSTGRESQL}"
+        "uid": "askgipuzkoa-postgres"
       },
       "fieldConfig": {
         "defaults": {},
@@ -221,7 +221,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${DS_POSTGRESQL}"
+        "uid": "askgipuzkoa-postgres"
       },
       "fieldConfig": {
         "defaults": {},
@@ -262,7 +262,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${DS_POSTGRESQL}"
+        "uid": "askgipuzkoa-postgres"
       },
       "fieldConfig": {
         "defaults": {
@@ -302,7 +302,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${DS_POSTGRESQL}"
+        "uid": "askgipuzkoa-postgres"
       },
       "fieldConfig": {
         "defaults": {
@@ -344,24 +344,7 @@
   "refresh": "30s",
   "schemaVersion": 41,
   "tags": ["llm-zoomcamp", "gipuzkoa", "rag"],
-  "templating": {
-    "list": [
-      {
-        "current": {},
-        "hide": 0,
-        "includeAll": false,
-        "label": "PostgreSQL datasource",
-        "multi": false,
-        "name": "DS_POSTGRESQL",
-        "options": [],
-        "query": "grafana-postgresql-datasource",
-        "refresh": 1,
-        "regex": "",
-        "skipUrlSync": false,
-        "type": "datasource"
-      }
-    ]
-  },
+  "templating": {"list": []},
   "time": {
     "from": "now-6h",
     "to": "now"

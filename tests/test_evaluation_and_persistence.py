@@ -191,7 +191,20 @@ def test_grafana_dashboard_contains_required_showcase_panels():
         "User feedback",
         "Token usage",
     } <= titles
-    assert dashboard["templating"]["list"][0]["name"] == "DS_POSTGRESQL"
+    assert dashboard["templating"]["list"] == []
+    assert all(
+        panel["datasource"]["uid"] == "askgipuzkoa-postgres"
+        for panel in dashboard["panels"]
+    )
+    provisioning = (
+        Path(__file__).parents[1]
+        / "grafana"
+        / "provisioning"
+        / "datasources"
+        / "askgipuzkoa.yaml"
+    ).read_text(encoding="utf-8")
+    assert "uid: askgipuzkoa-postgres" in provisioning
+    assert "$GRAFANA_DATABASE_PASSWORD" in provisioning
     assert "password" not in dashboard_path.read_text(encoding="utf-8").casefold()
 
 

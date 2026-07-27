@@ -280,7 +280,9 @@ def test_all_kestra_flows_define_runtime_safety_properties():
         assert "api_key=" not in text.casefold()
 
     compose = (Path(__file__).parents[1] / "compose.yaml").read_text(encoding="utf-8")
-    assert "${KESTRA_PASSWORD:?Set KESTRA_PASSWORD in .env}" in compose
+    assert 'profiles: ["ingestion"]' in compose
+    assert "${OPENAI_API_KEY:?Set OPENAI_API_KEY to generate answers}" in compose
+    assert "${KESTRA_PASSWORD:-askgipuzkoa-kestra-local}" in compose
     assert "KestraLocal1" not in compose
 
     era5_flow = (flow_directory / "ingest_era5_land_monthly.yaml").read_text(

@@ -8,7 +8,7 @@ import streamlit as st
 
 from app.assistant import create_assistant
 from app.db_feedback import save_feedback
-from app.db_init import connect, initialize_application_schema
+from app.db_init import connect
 from app.db_save import save_conversation
 from app.judge import evaluate_relevance
 from app.snapshot import read_snapshot_metadata
@@ -81,9 +81,9 @@ def assistant_resource():
 
 
 @st.cache_resource
-def initialize_monitoring_schema():
+def monitoring_ready():
     with connect() as connection:
-        initialize_application_schema(connection)
+        connection.execute("SELECT 1 FROM conversations LIMIT 0")
     return True
 
 
@@ -91,7 +91,7 @@ def persist_answer(result, question, enabled):
     if not enabled:
         return None
     try:
-        initialize_monitoring_schema()
+        monitoring_ready()
         return save_conversation(result, question)
     except Exception as error:
         st.warning(f"Answer generated, but monitoring persistence failed: {error}")

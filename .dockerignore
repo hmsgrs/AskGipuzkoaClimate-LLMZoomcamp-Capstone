@@ -2,5 +2,9 @@
 .venv/
 __pycache__/
 docs/api_keys/
-data/
+data/*
+!data/snapshots/
+data/snapshots/*
+!data/snapshots/gipuzkoa-demo-2026-07-22/
+!data/snapshots/gipuzkoa-demo-2026-07-22/**
 .git/

@@ -48,6 +48,21 @@ def initialize_pgvector(connection, dimensions: int | None = None):
         )
         """
     )
+    vector_type = connection.execute(
+        """
+        SELECT format_type(attribute.atttypid, attribute.atttypmod)
+        FROM pg_attribute attribute
+        JOIN pg_class relation ON relation.oid = attribute.attrelid
+        WHERE relation.relname = 'chunk_embeddings'
+          AND attribute.attname = 'embedding'
+          AND attribute.attnum > 0
+        """
+    ).fetchone()[0]
+    if vector_type != f"vector({dimensions})":
+        connection.rollback()
+        raise RuntimeError(
+            f"Existing embedding column is {vector_type}; expected vector({dimensions})"
+        )
     connection.execute(
         """
         CREATE INDEX IF NOT EXISTS chunk_embeddings_hnsw

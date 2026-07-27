@@ -1,0 +1,10 @@
+apiVersion: 1
+
+providers:
+  - name: Ask Gipuzkoa
+    folder: Ask Gipuzkoa
+    type: file
+    disableDeletion: true
+    editable: false
+    options:
+      path: /var/lib/grafana/dashboards

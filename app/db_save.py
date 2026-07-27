@@ -2,14 +2,13 @@
 
 import json
 
-from app.db_init import connect, initialize_application_schema
+from app.db_init import connect
 
 
 def save_conversation(result, question: str, connection=None):
     owns_connection = connection is None
     connection = connection or connect()
     try:
-        initialize_application_schema(connection)
         call = result.call
         citations = [citation.__dict__ for citation in result.citations]
         row = connection.execute(

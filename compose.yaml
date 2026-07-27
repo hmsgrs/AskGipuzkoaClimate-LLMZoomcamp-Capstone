@@ -2,40 +2,114 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-gipuzkoa_askbot}
-      POSTGRES_USER: ${POSTGRES_USER:-gipuzkoa}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
-    ports:
-      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+      POSTGRES_DB: gipuzkoa_askbot
+      POSTGRES_USER: askgipuzkoa_owner
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-askgipuzkoa-owner-local}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gipuzkoa} -d ${POSTGRES_DB:-gipuzkoa_askbot}"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U askgipuzkoa_owner -d gipuzkoa_askbot"]
+      interval: 3s
       timeout: 5s
-      retries: 10
+      retries: 20
+    networks:
+      - askgipuzkoa
+
+  runtime-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "-m", "app.runtime_init"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SNAPSHOT_PATH: /app/data/snapshots/gipuzkoa-demo-2026-07-22
+      BOOTSTRAP_DATABASE_URL: postgresql://askgipuzkoa_owner:${POSTGRES_PASSWORD:-askgipuzkoa-owner-local}@postgres:5432/gipuzkoa_askbot
+      APP_DATABASE_USER: askgipuzkoa_app
+      APP_DATABASE_PASSWORD: ${APP_DATABASE_PASSWORD:-askgipuzkoa-app-local}
+      GRAFANA_DATABASE_USER: askgipuzkoa_grafana
+      GRAFANA_DATABASE_PASSWORD: ${GRAFANA_DATABASE_PASSWORD:-askgipuzkoa-grafana-local}
+      OPENAI_EMBEDDING_MODEL: text-embedding-3-small
+      OPENAI_EMBEDDING_DIMENSIONS: 1536
+    restart: "no"
+    networks:
+      - askgipuzkoa
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      runtime-init:
+        condition: service_completed_successfully
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY to generate answers}
+      OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-5.4-mini}
+      OPENAI_EMBEDDING_MODEL: text-embedding-3-small
+      OPENAI_EMBEDDING_DIMENSIONS: 1536
+      DATA_MODE: snapshot
+      SQLITE_DATABASE: /app/data/snapshots/gipuzkoa-demo-2026-07-22/snapshot.sqlite
+      RETRIEVAL_BACKEND: pgvector
+      DATABASE_URL: postgresql://askgipuzkoa_app:${APP_DATABASE_PASSWORD:-askgipuzkoa-app-local}@postgres:5432/gipuzkoa_askbot
+    ports:
+      - "127.0.0.1:8501:8501"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8501/_stcore/health', timeout=2)"
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - askgipuzkoa
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    depends_on:
+      runtime-init:
+        condition: service_completed_successfully
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-askgipuzkoa}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GRAFANA_DATABASE_USER: askgipuzkoa_grafana
+      GRAFANA_DATABASE_PASSWORD: ${GRAFANA_DATABASE_PASSWORD:-askgipuzkoa-grafana-local}
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:3000/api/health >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     networks:
       - askgipuzkoa
 
   kestra-init:
     image: pgvector/pgvector:pg16
+    profiles: ["ingestion"]
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-gipuzkoa_askbot}
-      POSTGRES_USER: ${POSTGRES_USER:-gipuzkoa}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-askgipuzkoa-owner-local}
     command:
       - /bin/sh
       - -c
-      - PGPASSWORD="$$POSTGRES_PASSWORD" psql -h postgres -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -c 'CREATE SCHEMA IF NOT EXISTS kestra'
+      - PGPASSWORD="$$POSTGRES_PASSWORD" psql -h postgres -U askgipuzkoa_owner -d gipuzkoa_askbot -c 'CREATE SCHEMA IF NOT EXISTS kestra'
     restart: "no"
     networks:
       - askgipuzkoa
 
   kestra:
     image: kestra/kestra:v1.0.0
+    profiles: ["ingestion"]
     user: root
     command: server standalone --worker-thread=32
     depends_on:
@@ -59,15 +133,15 @@ services:
       KESTRA_CONFIGURATION: |
         datasources:
           postgres:
-            url: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-gipuzkoa_askbot}?currentSchema=kestra
+            url: jdbc:postgresql://postgres:5432/gipuzkoa_askbot?currentSchema=kestra
             driverClassName: org.postgresql.Driver
-            username: ${POSTGRES_USER:-gipuzkoa}
-            password: ${POSTGRES_PASSWORD}
+            username: askgipuzkoa_owner
+            password: ${POSTGRES_PASSWORD:-askgipuzkoa-owner-local}
         kestra:
           server:
             basicAuth:
               username: ${KESTRA_USERNAME:-admin@kestra.io}
-              password: ${KESTRA_PASSWORD:?Set KESTRA_PASSWORD in .env}
+              password: ${KESTRA_PASSWORD:-askgipuzkoa-kestra-local}
           repository:
             type: postgres
           storage:
@@ -88,18 +162,16 @@ services:
 
   ingestion-image:
     image: gipuzkoa-askbot-ingestion:0.2.0
+    profiles: ["ingestion-build"]
     build:
       context: .
       dockerfile: Dockerfile.ingestion
     command: ["true"]
-    profiles: ["build"]
 
 volumes:
   postgres-data:
+  grafana-data:
   kestra-data:
-  ingestion-data:
-    name: askgipuzkoa-ingestion-data
 
 networks:
   askgipuzkoa:
-    name: askgipuzkoa-network

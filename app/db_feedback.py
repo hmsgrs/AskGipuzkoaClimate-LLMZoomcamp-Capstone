@@ -1,6 +1,6 @@
 """Persist one human or judge feedback record per conversation."""
 
-from app.db_init import connect, initialize_application_schema
+from app.db_init import connect
 
 
 RELEVANCE_LABELS = {"NON_RELEVANT", "PARTLY_RELEVANT", "RELEVANT"}
@@ -25,7 +25,6 @@ def save_feedback(
     owns_connection = connection is None
     connection = connection or connect()
     try:
-        initialize_application_schema(connection)
         row = connection.execute(
             """
             INSERT INTO feedback (
