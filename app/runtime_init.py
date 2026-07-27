@@ -29,15 +29,18 @@ def _ensure_role(connection, role, password):
         "SELECT 1 FROM pg_roles WHERE rolname = %s", (role,)
     ).fetchone()
     identifier = sql.Identifier(role)
+    password_literal = sql.Literal(password)
     if exists:
         connection.execute(
-            sql.SQL("ALTER ROLE {} LOGIN PASSWORD %s").format(identifier),
-            (password,),
+            sql.SQL("ALTER ROLE {} LOGIN PASSWORD {}").format(
+                identifier, password_literal
+            )
         )
     else:
         connection.execute(
-            sql.SQL("CREATE ROLE {} LOGIN PASSWORD %s").format(identifier),
-            (password,),
+            sql.SQL("CREATE ROLE {} LOGIN PASSWORD {}").format(
+                identifier, password_literal
+            )
         )
 
 

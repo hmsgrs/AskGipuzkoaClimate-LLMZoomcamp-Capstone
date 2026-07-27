@@ -30,6 +30,14 @@ class PgvectorRepository:
         owns_connection = self.postgres_connection is None
         connection = self.postgres_connection or connect()
         try:
+            model_count = connection.execute(
+                "SELECT COUNT(*) FROM chunk_embeddings WHERE embedding_model = %s",
+                (model,),
+            ).fetchone()[0]
+            if model_count == 0:
+                raise RuntimeError(
+                    f"No document embeddings are loaded for model {model}"
+                )
             vector = Vector(query_vector).to_text()
             vector_rows = connection.execute(
                 """

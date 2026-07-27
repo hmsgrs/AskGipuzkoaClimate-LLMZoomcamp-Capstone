@@ -1,6 +1,6 @@
 # Monitoring
 
-With explicit user consent, the application records answer-generation events and feedback in local PostgreSQL using the course's conversation/feedback pattern. `app/db_init.py` creates the schema idempotently, `app/db_save.py` persists answers and citation-contract status, and `app/db_feedback.py` upserts one human and one judge verdict per conversation. Storage is disabled by default in Streamlit.
+With explicit user consent, the application records answer-generation events and feedback in local PostgreSQL using the course's conversation/feedback pattern. The one-shot runtime initializer creates the schema and grants; `app/db_save.py` persists answers and citation-contract status, and `app/db_feedback.py` upserts one human and one judge verdict per conversation. Storage is disabled by default in Streamlit.
 
 ## Stored Dimensions
 
@@ -10,7 +10,7 @@ The application does not store IP addresses or browser identifiers. If storage i
 
 ## Dashboard
 
-Import `grafana/dashboards/askgipuzkoa.json` and select a PostgreSQL datasource with access to the application tables. The dashboard includes:
+Compose provisions `grafana/dashboards/askgipuzkoa.json` and its PostgreSQL datasource automatically. Open `http://127.0.0.1:3000` and use the local demo login `admin` / `askgipuzkoa`. The dashboard includes:
 
 1. Questions over time
 2. Spanish versus English usage
@@ -25,4 +25,4 @@ All time-series queries use Grafana's selected-range macros and the dashboard re
 
 ## Selected Local Topology
 
-The selected milestone topology adds Streamlit and Grafana to the existing Compose file. Streamlit will bind to `127.0.0.1:8501`; Grafana will bind to `127.0.0.1:3000` with its own login. PostgreSQL will use separate least-privilege application-writer and Grafana read-only roles. Consented records remain until manually deleted. These choices are recorded here but the services and role provisioning still need implementation.
+Streamlit binds to `127.0.0.1:8501`; Grafana binds to `127.0.0.1:3000`; PostgreSQL is not exposed to the host. `runtime-init` owns schema and vector import. `askgipuzkoa_app` can read vectors and write monitoring rows but cannot alter vectors or create objects. `askgipuzkoa_grafana` can read only conversations and feedback. Consented records remain until manually deleted or `docker compose down --volumes` removes the local volumes.

@@ -20,11 +20,11 @@ Official information is distributed between weather services, government pages, 
 - Spanish and English question answering
 - Retrieval-augmented answers grounded in official documents
 - Source links and publication/update metadata with answers
-- Versioned weather and warning snapshots from official providers
+- Committed, checksummed historical reviewer snapshot
 - Emergency disclaimer and `112` guidance
 - User feedback collection
-- Importable Grafana monitoring dashboard with eight panels
-- Manual snapshot workflow with optional Kestra orchestration
+- Automatically provisioned Grafana dashboard with eight panels
+- One-command reviewer runtime with optional Kestra orchestration
 
 ## Technology Stack
 
@@ -35,14 +35,14 @@ Official information is distributed between weather services, government pages, 
 | Vector database | PostgreSQL with pgvector | Vector embeddings and similarity search |
 | Ingestion pipeline | Python and optional Kestra | Explicit capture and immutable snapshot publication |
 | Interface | Streamlit | Interactive web application |
-| Monitoring | Grafana | Application and feedback dashboard |
-| Local runtime | Docker Compose | Run all services together |
+| Monitoring | Grafana | Automatically provisioned application and feedback dashboard |
+| Local runtime | Docker Compose | Verify data, seed pgvector, and run the complete showcase |
 
 SQLite holds the complete normalized documents and citation metadata. Its FTS5 index provides the text-retrieval baseline. pgvector stores embeddings keyed to SQLite chunk IDs. After vector retrieval, the application loads the full text and source details from SQLite. With explicit user consent, conversation and feedback metrics are stored in local PostgreSQL for Grafana.
 
 ## Data Sources
 
-The initial corpus will use public, reproducible, authoritative sources:
+The scoped reviewer corpus uses public, reproducible, authoritative sources:
 
 - AEMET OpenData for forecasts, observations, and meteorological warnings
 - Euskalmet and Basque Government public weather and emergency information
@@ -56,7 +56,7 @@ Every stored document will include its source URL, publishing organization, lang
 
 The initial RAG corpus is intentionally limited to Euskalmet and Basque Government material. Its canonical SQLite schema versions normalized documents, creates deterministic chunks, and indexes active chunks with FTS5. The bilingual retrieval fixture records expected official source IDs for reproducible evaluation.
 
-Semantic retrieval stores `text-embedding-3-small` vectors in PostgreSQL with pgvector, keyed by the stable SQLite chunk IDs. Search results are hydrated from SQLite so citations and full text retain one canonical source. Embedding synchronization is incremental and removes vectors for inactive document versions.
+Semantic retrieval stores `text-embedding-3-small` vectors in PostgreSQL with pgvector, keyed by stable SQLite chunk IDs. A committed portable export binds all 161 vectors to exact chunk text hashes and seeds a fresh PostgreSQL volume without an embedding API call. Search results are hydrated from the verified read-only SQLite snapshot so citations retain one canonical source.
 
 Confirmed access paths, source classifications, and credential requirements are documented in [API Discovery](docs/API_DISCOVERY.md).
 
@@ -91,9 +91,9 @@ This project is designed to cover the LLM Zoomcamp project requirements:
 | LLM evaluation | Structured LLM-as-Judge comparison selects the citation/safety prompt |
 | Interface | Bilingual Streamlit UI with source cards, feedback, metrics, and `112` guidance |
 | Ingestion pipeline | Canonical Python snapshot commands plus optional manual Kestra workflows |
-| Monitoring | PostgreSQL events plus an importable eight-panel Grafana dashboard |
-| Containerization | PostgreSQL and Kestra in Compose; local Streamlit/Grafana services are the next deployment step |
-| Reproducibility | Version-pinned dependencies, public data, and documented setup |
+| Monitoring | Consented PostgreSQL events plus an automatically provisioned eight-panel Grafana dashboard |
+| Containerization | One Compose command starts pgvector, initialization, Streamlit, and Grafana; Kestra is optional |
+| Reproducibility | Version-pinned dependencies and a committed snapshot with checksummed vectors |
 
 ## Course Code Reuse
 
@@ -118,25 +118,23 @@ See [STATUS.md](STATUS.md) for the current state, active work, and prioritized n
 
 ## Run The Showcase
 
-The default audit path uses a published snapshot and does not require AEMET, Euskalmet, CDS, or Kestra credentials:
+Install Docker, clone the repository, and provide only an OpenAI key for new answers:
 
 ```bash
-uv sync --group dev
-uv run python -m app.snapshot verify --snapshot data/snapshots/SNAPSHOT_ID
-DATA_MODE=snapshot \
-SQLITE_DATABASE=data/snapshots/SNAPSHOT_ID/snapshot.sqlite \
-RETRIEVAL_BACKEND=sqlite_fts5 \
-uv run streamlit run app/streamlit_app.py
+OPENAI_API_KEY=your-key docker compose up --build --wait
 ```
 
-New generated answers require `OPENAI_API_KEY`. PostgreSQL is needed for pgvector or consented monitoring, but not for snapshot verification and FTS retrieval. Full environment variables and credential-path conventions are listed in `.env.example`.
+Open Streamlit at [http://127.0.0.1:8501](http://127.0.0.1:8501) and Grafana at [http://127.0.0.1:3000](http://127.0.0.1:3000). The local-only Grafana demo login is `admin` / `askgipuzkoa`; override it through `.env` when needed.
+
+The one-shot initializer verifies snapshot `gipuzkoa-demo-2026-07-22`, checks every artifact digest, creates least-privilege database roles, and imports 161 committed vectors. AEMET, Euskalmet, CDS, Kestra, PostgreSQL, and Grafana configuration are not reviewer prerequisites. Stop the stack with `docker compose down`; add `--volumes` to discard consented monitoring data.
 
 Creating a new all-source snapshot is an optional maintainer path that requires the relevant provider credentials and acceptance of the [Climate Data Store licence](https://cds.climate.copernicus.eu/datasets/reanalysis-era5-land?tab=download#manage-licences). See [Data Snapshots](docs/SNAPSHOTS.md).
 
 ## Limitations
 
 - Weather and warnings in the default snapshot are historical and must not be treated as current conditions.
+- The reviewer snapshot intentionally excludes AEMET daily observations, hazard alerts, and current conditions.
 - The application does not replace official warning channels or emergency services.
 - Responses are limited to Gipuzkoa and should identify when a source is Basque Country- or Spain-wide rather than Gipuzkoa-specific.
 - The initial evaluation fixtures contain six questions each and are showcase baselines, not comprehensive quality guarantees.
-- Streamlit/Grafana Compose services and least-privilege database roles remain to be implemented.
+- The bundled passwords are local demonstration credentials, not production defaults.

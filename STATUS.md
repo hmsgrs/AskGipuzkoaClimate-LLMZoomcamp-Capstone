@@ -43,8 +43,8 @@ Update this file whenever the project reaches a milestone or its active priority
 
 ### Automation and verification
 
-- Nine source-oriented Kestra flows cover public weather, homepage alerts, authenticated Euskalmet forecasts and alerts, AEMET catalogue and daily history, bounded AEMET backfill, ERA5-Land, and canonical corpus/vector refreshes. A tenth manual flow publishes the completed working database as an immutable snapshot.
-- The Compose runtime pins Kestra `v1.0.0`, PostgreSQL/pgvector, explicit Docker networking, persistent Kestra storage, and the shared ingestion-data volume.
+- Nine source-oriented Kestra flows cover public weather, homepage alerts, authenticated Euskalmet forecasts and alerts, AEMET catalogue and daily history, bounded AEMET backfill, ERA5-Land, and canonical corpus/vector refreshes. Two additional manual flows produce and package snapshots.
+- The default Compose runtime verifies the committed snapshot, seeds PostgreSQL/pgvector, provisions least-privilege roles, and starts Streamlit and Grafana. Kestra `v1.0.0` is retained behind the optional `ingestion` profile.
 - Custom Kestra Basic Auth is active with a valid-email username; the built-in password is rejected.
 - The ingestion Docker image builds successfully as `gipuzkoa-askbot-ingestion:0.2.0`.
 - SQLite uses WAL mode, a 60-second busy timeout, locked schema initialization, request-scoped snapshot IDs, and durable `ingestion_runs` receipts without locking across network calls.
@@ -57,7 +57,7 @@ Update this file whenever the project reaches a milestone or its active priority
 - Corpus/vector validation passes with 9 active documents, 161 chunks, 161 vectors, zero unchanged embeddings, a 67% FTS5 hit rate, and a 100% pgvector hit rate.
 - Supervised enabled-flow executions succeeded for Euskalmet alerts (`4Z5ULbLUMBYhL6txvmndWq`), Euskalmet forecasts (`2T6MvUlX6E7dNzVDC8gKbr`), ERA5-Land (`4AUvyN7V9Mu85BjwYDOyuy`), and corpus/vector refresh (`6SNZZsJy9ls5NL0v7AxzBH`).
 - The initial AEMET historical backfill exposed its token because Kestra still had a pre-redaction ingestion image. The execution/logs were deleted, SQLite receipts were sanitized, the corrected image was rebuilt, and current logs are clean. The token must be rotated before AEMET validation resumes.
-- The complete suite contains 56 tests: 54 unit tests pass, and both real pgvector and application-persistence integration tests pass against the Compose service.
+- The suite contains 72 tests: 70 unit tests cover the committed artifacts, reviewer runtime, and application behavior, and both PostgreSQL integration tests pass against a service database.
 
 ### RAG application and evaluation
 
@@ -71,7 +71,7 @@ Update this file whenever the project reaches a milestone or its active priority
 - A live answer and online judge round trip succeeded with pgvector, persisted conversation/feedback records, and returned a `RELEVANT` verdict.
 - Retrieval evaluation now reports hit rate and MRR: FTS5 is 67%/0.67 and pgvector is 100%/0.92 at 5.
 - The hardened six-question bilingual prompt evaluation selected the citation/safety prompt at 4.83/5 overall versus 3.67/5 for the course baseline. Citation correctness improved from 1.83 to 4.50; citation-contract compliance and required-source recall both reached 100% versus 16.7%.
-- An importable Grafana dashboard defines eight PostgreSQL-backed panels. The local Compose topology and least-privilege roles are selected; implementation remains pending.
+- Grafana automatically provisions its read-only PostgreSQL datasource and eight-panel dashboard. Streamlit and Grafana health checks pass on ports 8501 and 3000.
 
 ### Snapshot-first redesign
 
@@ -80,11 +80,13 @@ Update this file whenever the project reaches a milestone or its active priority
 - Retrieval opens SQLite read-only and uses deterministic FTS ordering.
 - Snapshot weather interprets relative dates from the acquisition window and always marks archived warning evidence stale.
 - Provider ingestion remains available manually; all recurring Kestra triggers were removed, and `create_data_snapshot` is an optional manually triggered publication flow.
-- The existing ignored development database is explicitly not a canonical all-source release because AEMET history and hazard coverage are incomplete.
+- The repository commits scoped demo snapshot `gipuzkoa-demo-2026-07-22`, its manifest/checksum, and 161 corpus-bound portable vectors. A fresh Compose volume imports all vectors without an embedding API call.
+- The demo includes 9 documents, 161 chunks, 6 evaluation questions, 45 stations, 18 public forecasts, and one authenticated forecast. AEMET observations, hazard alerts, and current conditions are explicitly excluded.
+- The existing ignored development database and scoped demo are not a canonical all-source release because AEMET history and hazard coverage are incomplete.
 
 ## Currently Working On
 
-Completing and publishing the first clean all-source snapshot after AEMET token rotation, then seeding portable semantic retrieval from that snapshot.
+The reviewer application is clone-auditable with one Compose command. The remaining data priority is the canonical all-source snapshot after AEMET token rotation.
 
 ## Next Steps
 

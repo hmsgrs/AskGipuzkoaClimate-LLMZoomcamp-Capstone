@@ -1,34 +1,41 @@
 # Data Snapshots
 
-The application is snapshot-first. A published snapshot is the default input for
-auditing, retrieval evaluation, and the Streamlit application. Provider ingestion is
-an optional maintainer operation.
+The application is snapshot-first. The repository includes the scoped historical
+snapshot `gipuzkoa-demo-2026-07-22` for auditing, retrieval evaluation, and the
+Streamlit application. Provider ingestion is an optional maintainer operation.
+
+The demo manifest digest is
+`c4540fce24fe6b7c31d7d9e272f2218df12b529a817a3b487f590619b6d97fd7`.
+It contains 9 official documents, 161 chunks, 6 retrieval questions, 45 station
+records, 18 public forecasts, one authenticated forecast, and 161 portable vectors.
+It explicitly excludes AEMET daily observations, hazard alerts, and current
+conditions; it is not the future canonical all-source release.
 
 The complete design and migration rationale are in
 [Snapshot-First Redesign](SNAPSHOT_REDESIGN.md).
 
 ## Audit Without Provider Keys
 
-Verify a snapshot downloaded from a project release:
+Verify the snapshot included in a clone:
 
 ```bash
 uv sync --group dev
 uv run python -m app.snapshot verify \
-  --snapshot data/snapshots/SNAPSHOT_ID
+  --snapshot data/snapshots/gipuzkoa-demo-2026-07-22
 ```
 
 Inspect its acquisition window, table counts, source revision, and artifacts:
 
 ```bash
 uv run python -m app.snapshot inspect \
-  --snapshot data/snapshots/SNAPSHOT_ID
+  --snapshot data/snapshots/gipuzkoa-demo-2026-07-22
 ```
 
 Run lexical retrieval directly against the immutable database:
 
 ```bash
 DATA_MODE=snapshot \
-SQLITE_DATABASE=data/snapshots/SNAPSHOT_ID/snapshot.sqlite \
+SQLITE_DATABASE=data/snapshots/gipuzkoa-demo-2026-07-22/snapshot.sqlite \
 RETRIEVAL_BACKEND=sqlite_fts5 \
 uv run streamlit run app/streamlit_app.py
 ```
@@ -37,8 +44,15 @@ The snapshot database is opened read-only. Weather and warning results are histo
 and use the snapshot acquisition date when interpreting relative terms such as
 "today" and "tomorrow".
 
-OpenAI is still required for new generated answers. Provider credentials, Kestra,
-CDS, and PostgreSQL are not needed for FTS retrieval or snapshot verification.
+The primary semantic reviewer path is simpler:
+
+```bash
+OPENAI_API_KEY=your-key docker compose up --build --wait
+```
+
+The initializer verifies the same bundle and imports its corpus-bound vectors without
+calling OpenAI. OpenAI is required for new query embeddings and answers. Provider
+credentials, Kestra, and CDS are not reviewer requirements.
 
 ## Install A Working Copy
 
@@ -47,7 +61,7 @@ verified disposable copy without contacting providers:
 
 ```bash
 uv run python -m app.snapshot install \
-  --snapshot data/snapshots/SNAPSHOT_ID \
+  --snapshot data/snapshots/gipuzkoa-demo-2026-07-22 \
   --database data/processed/ingestion.sqlite
 ```
 

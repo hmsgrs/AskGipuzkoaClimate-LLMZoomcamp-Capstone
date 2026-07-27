@@ -11,6 +11,15 @@ This is a bounded rearchitecture rather than a rewrite. Existing provider client
 document extraction, deterministic chunking, SQLite FTS5, pgvector retrieval, RAG,
 evaluation, Streamlit, feedback, and monitoring code remain useful.
 
+## Implementation Status
+
+The repository now commits scoped snapshot `gipuzkoa-demo-2026-07-22` and a portable
+`text-embedding-3-small` export bound to all 161 chunk hashes. The default Compose
+runtime verifies both artifacts, imports vectors into a fresh pgvector volume,
+provisions Streamlit and Grafana, and requires only an OpenAI key for new queries and
+answers. This satisfies the reviewer path; the broader canonical all-source release
+remains blocked on AEMET token rotation and complete hazard/history coverage.
+
 ## Why Change
 
 The original architecture gave production ingestion more weight than the course

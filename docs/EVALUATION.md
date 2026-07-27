@@ -12,7 +12,7 @@ The initial baseline uses the six bilingual questions in `evaluation/retrieval_q
 | English | 1 | 3 | 33% |
 | Overall | 4 | 6 | 67% |
 
-The live corpus contained 9 active documents and 161 chunks. FTS5 retrieved all expected sources for Spanish questions. It missed the English adverse-weather recommendation and summer-climate questions because the initial corpus is predominantly Spanish and lexical retrieval does not translate query terms.
+The evaluated corpus is committed in snapshot `gipuzkoa-demo-2026-07-22` with database SHA-256 `f2b02b8ae386b69b0e35375b9dae49b2f33941c8327a78ffb5ceccc750a56094`. It contains 9 active documents and 161 chunks. FTS5 retrieved all expected sources for Spanish questions. It missed the English adverse-weather recommendation and summer-climate questions because the corpus is predominantly Spanish and lexical retrieval does not translate query terms.
 
 This is an intentionally small smoke-test dataset, not a final quality claim. The dataset must be expanded before final retrieval selection. The pgvector comparison uses the same expected source IDs.
 

@@ -14,25 +14,20 @@ question
 
 ## Run Locally
 
-For the default audit path, verify a published snapshot and use SQLite FTS5. Set `OPENAI_API_KEY` for new answers and point `SQLITE_DATABASE` at the snapshot database. PostgreSQL is only required for pgvector or consented monitoring.
+The default reviewer path requires Docker and one OpenAI key. Compose verifies the committed snapshot, imports document embeddings without an API call, provisions PostgreSQL, and starts Streamlit and Grafana:
 
 ```bash
-uv sync --group dev
-uv run python -m app.snapshot verify --snapshot data/snapshots/SNAPSHOT_ID
-DATA_MODE=snapshot \
-SQLITE_DATABASE=data/snapshots/SNAPSHOT_ID/snapshot.sqlite \
-RETRIEVAL_BACKEND=sqlite_fts5 \
-uv run streamlit run app/streamlit_app.py
+OPENAI_API_KEY=your-key docker compose up --build --wait
 ```
 
 For a CLI answer:
 
 ```bash
-uv run python -m app.assistant \
+OPENAI_API_KEY=dummy docker compose exec streamlit python -m app.assistant \
   "Why is climate change a global problem?"
 ```
 
-The default retrieval backend is pgvector. Set `RETRIEVAL_BACKEND=sqlite_fts5` to demonstrate the lexical baseline.
+The reviewer backend is pgvector. The committed `text-embedding-3-small` document vectors are seeded locally; OpenAI is called only for the query embedding and generated answer. SQLite FTS5 remains the lexical baseline for evaluation.
 
 ## Routing
 
@@ -53,7 +48,7 @@ The selected prompt instructs the model to answer in the question's language, us
 
 ## Persistence And Feedback
 
-`app/db_init.py` creates idempotent `conversations` and `feedback` tables in PostgreSQL. Streamlit storage is disabled by default. If the user explicitly enables it before asking, the application stores the question, answer, grounded prompt, route, language, backend, model, tokens, latency, estimated cost, citations, citation-contract status, and UTC time. Feedback and the optional LLM relevance verdict are available only for a stored conversation.
+`app.runtime_init` creates the vector, conversation, and feedback schemas before the application starts. Streamlit uses a least-privilege writer that cannot alter document vectors or create schema objects. Storage is disabled by default. If the user explicitly enables it before asking, the application stores the question, answer, grounded prompt, route, language, backend, model, tokens, latency, estimated cost, citations, citation-contract status, and UTC time. Feedback and the optional LLM relevance verdict are available only for a stored conversation.
 
 The application does not persist IP addresses or browser identifiers. Consented questions, answers, prompts, and comments remain in local PostgreSQL until manually deleted, so a hosted deployment still requires an explicit privacy and retention policy.
 

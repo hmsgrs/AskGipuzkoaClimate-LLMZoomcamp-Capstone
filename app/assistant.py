@@ -162,8 +162,9 @@ def create_assistant(
     weather_max_age = int(os.getenv("LIVE_DATA_MAX_AGE_HOURS", "3"))
 
     if snapshot_mode:
-        if (database.parent / MANIFEST_NAME).is_file():
-            verify_snapshot(database.parent)
+        if not (database.parent / MANIFEST_NAME).is_file():
+            raise RuntimeError("Snapshot mode requires a verified snapshot bundle")
+        verify_snapshot(database.parent)
         read_snapshot_metadata(database)
 
     if backend == "pgvector":

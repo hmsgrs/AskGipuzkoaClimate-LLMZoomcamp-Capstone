@@ -1,5 +1,8 @@
 {
   "evaluation_date": "2026-07-24",
+  "snapshot_id": "gipuzkoa-demo-2026-07-22",
+  "snapshot_database_sha256": "f2b02b8ae386b69b0e35375b9dae49b2f33941c8327a78ffb5ceccc750a56094",
+  "snapshot_manifest_sha256": "c4540fce24fe6b7c31d7d9e272f2218df12b529a817a3b487f590619b6d97fd7",
   "backend": "pgvector",
   "generation_model": "gpt-5.4-mini",
   "judge_model": "gpt-5.4-mini",
